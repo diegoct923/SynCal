@@ -1,8 +1,8 @@
 import schedule
 import time
 from datetime import datetime
-from db import get_tasks
-from notifier import send_whatsapp_message
+from app.storage.task_store import get_tasks
+from app.integrations.twilio_client import send_whatsapp_message
 
 def check_reminders():
     print("Chequeando tareas...")

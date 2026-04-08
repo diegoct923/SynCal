@@ -1,6 +1,6 @@
 import time
-from ngrok_utils import get_ngrok_url
-from notifier import update_webhook
+from scripts.ngrok_utils import get_ngrok_url
+from app.integrations.twilio_client import update_webhook
 
 CONFIG_FILE = "config.py"
 

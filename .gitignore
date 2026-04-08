@@ -2,6 +2,7 @@
 # 🔐 Variables sensibles
 # =========================
 .env
+data/
 
 # =========================
 # 🐍 Python
@@ -45,7 +46,7 @@ Thumbs.db
 *.exe
 
 # 👉 EXCEPCIÓN (importante)
-!ngrok.exe
+ngrok.exe
 
 # =========================
 # 📦 Build

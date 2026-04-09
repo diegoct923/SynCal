@@ -38,15 +38,10 @@ def webhook():
             response.message("Primero conectá tu Notion con 'Conectar Notion'")
             return str(response)
 
-        result = create_user_task(
-        sender,
-        command["title"],
-        command["date"],
-        command["category"]
-    )
+        result = create_user_task(sender, command["task"], command["date"], command["priority"])
 
         if result:
-            response.message(" Tarea creada en Notion 🚀")
+            response.message(" Tarea creada en Notion")
         else:
             response.message(" Error creando tarea")
 

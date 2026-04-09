@@ -1,11 +1,11 @@
 # =========================
-# 🔐 Variables sensibles
+# Variables sensibles
 # =========================
 .env
 data/
 
 # =========================
-# 🐍 Python
+# Python
 # =========================
 __pycache__/
 *.pyc
@@ -18,38 +18,38 @@ venv/
 .venv/
 
 # =========================
-# 🧪 Logs
+# Logs
 # =========================
 *.log
 
 # =========================
-# 💾 Archivos temporales
+# Archivos temporales
 # =========================
 *.tmp
 *.swp
 
 # =========================
-# 🖥️ Sistema operativo
+# Sistema operativo
 # =========================
 .DS_Store
 Thumbs.db
 
 # =========================
-# 🧠 IDEs / Editores
+# IDEs / Editores
 # =========================
 .vscode/
 .idea/
 
 # =========================
-# ⚙️ Ejecutables
+# Ejecutables
 # =========================
 *.exe
 
-# 👉 EXCEPCIÓN (importante)
+# EXCEPCIÓN 
 ngrok.exe
 
 # =========================
-# 📦 Build
+# Build
 # =========================
 dist/
 build/

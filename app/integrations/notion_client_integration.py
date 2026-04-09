@@ -1,21 +1,19 @@
 from notion_client import Client
 
+
 def get_client(token):
     return Client(auth=token)
 
 def find_databases(token):
     notion = get_client(token)
+    response = notion.search(filter={"property": "object", "value": "database"})
 
-    return notion.search(
-        filter={"property": "object", "value": "data_source"}
-    )["results"]
+    return response["results"] #type: ignore
 
 def find_pages(token):
     notion = get_client(token)
-
-    return notion.search(
-        filter={"property": "object", "value": "page"}
-    )["results"]
+    response = notion.search(filter={"property": "object", "value": "page"})
+    return response["results"] #type: ignore
 
 def create_database(token):
     notion = get_client(token)

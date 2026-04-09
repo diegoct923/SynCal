@@ -1,5 +1,5 @@
 from app.storage.user_store import get_user
-from app.integrations.notion_client import create_task
+from app.integrations.notion_client_integration import create_task
 
 
 def create_user_task(user, title, date, category):

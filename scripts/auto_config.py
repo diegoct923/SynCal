@@ -16,7 +16,7 @@ for _ in range(10):
 if url:
     print("URL encontrada:", url)
 
-    # 🔥 actualizar config.py
+    #actualizar config.py
     with open(CONFIG_FILE, "w") as f:
         f.write(f'BASE_URL = "{url}"\n')
 

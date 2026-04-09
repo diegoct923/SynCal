@@ -4,7 +4,7 @@ import requests
 from dotenv import load_dotenv
 from app.storage.auth_store import get_phone_from_state, delete_state
 from app.storage.user_store import update_user_token, update_user_database
-from app.integrations.notion_client import setup_user_database
+from app.integrations.notion_client_integration import setup_user_database
 from config.config import BASE_URL
 
 
@@ -62,4 +62,4 @@ def callback():
 
     print(f" Usuario {phone} conectado con DB {db_id}")
 
-    return " Notion conectado y listo 🚀 Volvé a WhatsApp"
+    return " Notion conectado y listo. Volvé a WhatsApp"

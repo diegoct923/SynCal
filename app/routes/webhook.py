@@ -5,11 +5,8 @@ from app.utils.parser import parse_message
 from app.services.service import create_user_task
 from app.storage.task_store import get_tasks
 from app.storage.user_store import (
-    has_notion_connected,
     create_user_if_not_exists
 )
-from app.storage.auth_store import save_state
-from app.utils.helpers import generate_state
 from config.config import BASE_URL
 import os
 
@@ -29,25 +26,21 @@ def webhook():
     command = parse_message(incoming_msg)
     response = MessagingResponse()
 
-    # =========================
+    
     # ADD
-    # =========================
+    
     if command["type"] == "ADD":
 
-        if not has_notion_connected(sender):
-            response.message("Primero conectá tu Notion con 'Conectar Notion'")
-            return str(response)
-
-        result = create_user_task(sender, command["task"], command["date"], command["priority"])
+        result = create_user_task(sender, command["title"], command["date"], command["category"])
 
         if result:
-            response.message(" Tarea creada en Notion")
+            response.message("Tarea creada")
         else:
             response.message(" Error creando tarea")
 
-    # =========================
+    
     # LIST
-    # =========================
+    
     elif command["type"] == "LIST":
         tasks = get_tasks()
         tasks = [t for t in tasks if t["user"] == sender]
@@ -61,30 +54,11 @@ def webhook():
 
             response.message(msg)
 
-    # =========================
-    # CONNECT NOTION
-    # =========================
-    elif command["type"] == "CONNECT_NOTION":
-
-        state = generate_state()
-        save_state(state, sender)
-
-        auth_url = (
-            f"https://api.notion.com/v1/oauth/authorize"
-            f"?client_id={CLIENT_ID}"
-            f"&response_type=code"
-            f"&owner=user"
-            f"&redirect_uri={BASE_URL}/callback"
-            f"&state={state}"
-        )
-
-        response.message(f"Conectá tu Notion:\n{auth_url}")
-
     elif command["type"] == "ERROR":
         response.message(command["message"])
 
 
-    else:
+    elif command["type"] == "UNKNOWN":
         response.message(
             "No entendí el comando.\n"
             "Usá:\n"

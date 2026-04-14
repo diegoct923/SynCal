@@ -4,7 +4,7 @@ echo "Activando entorno..."
 source venv/bin/activate
 
 echo "Levantando servidor Flask..."
-kitty bash -c "python app.py; exec bash" &
+kitty bash -c "python main.py; exec bash" &
 
 sleep 3
 

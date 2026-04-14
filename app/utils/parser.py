@@ -1,6 +1,4 @@
 from datetime import datetime
-from app.integrations.openai import parse_message_ia
-
 
 def validate_date(date_str):
     if date_str is None:
@@ -13,30 +11,22 @@ def validate_date(date_str):
         return None
 
 
-def parse_message(message: str) -> dict:
-    result = parse_message_ia(message)
+def parse_message(message):
+    message = message.strip().lower()
+    parts = message.split()
 
-    if not isinstance(result, dict):
+    #VER TAREAS
+    if message in ["ver tareas", "listar", "list"]:
+        return {"type": "LIST"}
+
+    #AÑADIR
+    if len(parts) >= 4 and parts[0] == "añadir":
         return {
-            "type": "ERROR",
-            "message": "Invalid response type"
+            "type": "ADD",
+            "category": parts[1],
+            "title": parts[2],
+            "date": parts[3]
         }
 
-    if result.get("type") == "ERROR":
-        return {
-            "type": "ERROR",
-            "message": "No se pudo interpretar el mensaje"
-        }
 
-    date = validate_date(result.get("date"))
-
-    if result.get("date") is not None and date is None:
-        return {
-            "type": "ERROR",
-            "message": "Invalid date format",
-            "data": result
-        }
-
-    result["date"] = date
-
-    return result
+    return {"type": "UNKNOWN"}

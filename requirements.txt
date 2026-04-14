@@ -23,8 +23,6 @@ Jinja2==3.1.6
 jiter==0.13.0
 MarkupSafe==3.0.3
 multidict==6.7.1
-notion-client==3.0.0
-openai==2.30.0
 propcache==0.4.1
 pydantic==2.12.5
 pydantic_core==2.41.5

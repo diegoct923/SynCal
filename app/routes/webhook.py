@@ -18,10 +18,12 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 def webhook():
     incoming_msg = request.form.get("Body")
     sender = request.form.get("From")
+    phone = sender.split(':+') #type: ignore
+    tel = phone[1]
 
-    print(f"Mensaje de {sender}: {incoming_msg}")
+    print(f"Mensaje de {tel}: {incoming_msg}")
 
-    create_user_if_not_exists(sender)
+    create_user_if_not_exists(phone[1])
 
     command = parse_message(incoming_msg)
     response = MessagingResponse()
@@ -31,7 +33,7 @@ def webhook():
     
     if command["type"] == "ADD":
 
-        result = create_user_task(sender, command["title"], command["date"], command["category"])
+        result = create_user_task(tel, command["tipo"], command["title"], command["date"])
 
         if result:
             response.message("Tarea creada")
@@ -42,15 +44,15 @@ def webhook():
     # LIST
     
     elif command["type"] == "LIST":
-        tasks = get_tasks()
-        tasks = [t for t in tasks if t["user"] == sender]
+        tasks = get_tasks(tel)
+        tasks = [t for t in tasks if t["phone"] == tel]
 
         if not tasks:
             response.message("No tenés tareas aún")
         else:
             msg = "Tus tareas:\n"
             for t in tasks:
-                msg += f"- {t['category']} {t['title']} ({t['date']})\n"
+                msg += f"- {t['tipo']} {t['title']} ({t['date']})\n"
 
             response.message(msg)
 

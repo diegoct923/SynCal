@@ -1,12 +1,12 @@
-from app.storage.user_store import get_user
 from app.storage.task_store import save_task
 
-def create_user_task(user, category, title, date):
+
+def create_user_task(phone, tipo, title, date):
     task = {
-        "user": user, 
+        "phone": phone, 
         "title": title,
         "date" : date,
-        "category" : category
+        "tipo" : tipo
     }
     save_task(task)
 

@@ -13,7 +13,7 @@ def validate_date(date_str):
 
 def parse_message(message):
     message = message.strip().lower()
-    parts = message.split()
+    parts = message.split(" ")
 
     #VER TAREAS
     if message in ["ver tareas", "listar", "list"]:
@@ -21,11 +21,14 @@ def parse_message(message):
 
     #AÑADIR
     if len(parts) >= 4 and parts[0] == "añadir":
+        
+        #validar fecha por aca 
+        
         return {
-            "type": "ADD",
-            "category": parts[1],
-            "title": parts[2],
-            "date": parts[3]
+            "type": "ADD",     #parts[0]
+            "tipo": parts[1],  #ej: parcial, entrega, practico
+            "title": parts[2], #ej: redes, matematicas...
+            "date": parts[3]   #en formato aaaa/mm/dd 
         }
 
 

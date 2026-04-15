@@ -15,6 +15,7 @@ services:
  
 volumes:
   pgdata:
+    name: syncal_pgdata
 
-#Para levantar docker correr: docker compose up -d 
-#Para bajarlo: docker compose down
+#Para levantar docker correr (parados en SynCal): docker compose --env-file .env -f config/docker-compose.yml up -d
+#Para bajarlo (parados en SynCal): docker compose -f config/docker-compose.yml down

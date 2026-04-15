@@ -1,7 +1,7 @@
 from flask import request
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
-from app.utils.parser import parse_message
+from app.utils.parser import parse_task_data, parse_intent
 from app.services.service import create_user_task
 from app.storage.task_store import get_tasks
 from app.storage.user_store import (
@@ -25,25 +25,31 @@ def webhook():
 
     create_user_if_not_exists(phone[1])
 
-    command = parse_message(incoming_msg)
+    intent = parse_intent(incoming_msg) #ADD, LIST, UNKNOWN
+
     response = MessagingResponse()
 
     
     # ADD
     
-    if command["type"] == "ADD":
+    if intent["type"] == "ADD":
+        task = parse_task_data(incoming_msg)
 
-        result = create_user_task(tel, command["tipo"], command["title"], command["date"])
+        if not task["ok"]:
+            response.message("No pude crear la tarea: " + task["error"])
+            return str(response)
+
+        result = create_user_task(tel, task["data"]["tipo"], task["data"]["title"], task["data"]["deadline"])
 
         if result:
             response.message("Tarea creada")
         else:
-            response.message(" Error creando tarea")
+            response.message("Error creando tarea")
 
     
     # LIST
     
-    elif command["type"] == "LIST":
+    elif intent["type"] == "LIST":
         tasks = get_tasks(tel)
         tasks = [t for t in tasks if t["phone"] == tel]
 
@@ -52,21 +58,17 @@ def webhook():
         else:
             msg = "Tus tareas:\n"
             for t in tasks:
-                msg += f"- {t['tipo']} {t['title']} ({t['date']})\n"
+                msg += f"- {t['tipo']} {t['title']} ({t['deadline']})\n"
 
             response.message(msg)
 
-    elif command["type"] == "ERROR":
-        response.message(command["message"])
 
-
-    elif command["type"] == "UNKNOWN":
+    elif intent["type"] == "UNKNOWN":
         response.message(
             "No entendí el comando.\n"
             "Usá:\n"
-            "- Añadir Parcial/Entrega Nombre Fecha\n"
+            "- Añadir Tarea, Nombre, Fecha"
             "- Ver tareas\n"
-            "- Conectar Notion"
         )
 
     return str(response)

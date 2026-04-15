@@ -5,7 +5,7 @@ def create_user_task(phone, tipo, title, date):
     task = {
         "phone": phone, 
         "title": title,
-        "date" : date,
+        "deadline" : date,
         "tipo" : tipo
     }
     save_task(task)

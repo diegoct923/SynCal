@@ -6,7 +6,7 @@ def connect_db():
         host="localhost",
         database="syncal",
         user="postgres",
-        password="asddsa",  # la que pusiste en Docker
+        password="asddsa",  
         port="5432",
         options="-c search_path=squema1"
     )

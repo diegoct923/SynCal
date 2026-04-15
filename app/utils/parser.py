@@ -39,7 +39,7 @@ def detect_tipo(text: str) -> str:
 
 def extract_date(text: str):
 
-    #patrones en que puede venir fecha  añadir parcial matemáticas jueves 23 de abril
+    #patrones en que puede venir fecha  ej : añadir parcial matemáticas jueves 23 de abril
     patterns = [ 
         # combinaciones tipo "jueves 20 de abril"
         r'\b(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
@@ -75,11 +75,7 @@ def extract_date(text: str):
             print(date)
             return date
 
-    #si no hubo matches parsea el texto  "PREFER_DATES_FROM": "future", 
-    #date = dateparser.parse(text, settings={"RELATIVE_BASE": datetime.now()})
-    #if date:
-    #    print(date)
-    #    return date
+    
 
     return None
 
@@ -88,31 +84,49 @@ def extract_date(text: str):
 
 def clean_task_title(text: str) -> str:
    # remover conectores comunes
+    print("ANTES:", repr(text))
     noise_words = [
         "para", "el", "la", "los", "las",
-        "de", "del", "con", "por", "antes",
+        "del", "con", "por", "antes",
         "hacer", "tengo", "que", "agregar", 
-        "añadir", "crear", "parcial", "entrega"
+        "anadir", "crear", "parcial", "entrega", "de", "listar"
     ]
+
+     # noise words
+    for word in noise_words:
+        text = re.sub(rf'\b{word}\b', '', text)
+
+    text = re.sub(r'\s+', ' ', text).strip() #normalizar
+   
+
+    
     # remover fechas explícitas
     text = re.sub(r'\d{1,2}/\d{1,2}', '', text) #ej : 12/04
+    text = re.sub(r'\s+', ' ', text).strip()
     text = re.sub(r'\d{1,2}-\d{1,2}', '', text) #ej : 12-04
-
+    text = re.sub(r'\s+', ' ', text).strip() #normalizar
+    
+    
     # remover días y relativos
     text = re.sub(r'(lunes|martes|miercoles|jueves|viernes|sabado|domingo|hoy|manana|pasado manana)','',text)
+    text = re.sub(r'\s+', ' ', text).strip() #normalizar
+    
+
+    # fechas tipo "23 abril"
+    text = re.sub(
+        r'\b\d{1,2}\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
+        '',
+        text
+    )
+    text = re.sub(r'\s+', ' ', text).strip() #normalizar 
+    
 
     # remover keywords de tipo
     for words in TYPE_KEYWORDS.values():
         for w in words:
             text = text.replace(w, "")
-
-    # remover ruido
-    for word in noise_words:
-        text = text.replace(f" {word} ", " ")
-
-    # limpiar espacios extra
-    text = re.sub(r'\s+', ' ', text).strip()
-
+    text = re.sub(r'\s+', ' ', text).strip() #normalizar
+     
     return text
 
 
@@ -120,10 +134,10 @@ def clean_task_title(text: str) -> str:
 def parse_intent(text) -> dict:
     text = text.lower()
 
-    if any(x in text for x in ["agregar", "añadir", "crear", "parcial", "entrega"]):
+    if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega"]):
         return {"type": "ADD"}
 
-    if any(x in text for x in ["ver tareas", "mis tareas", "listar", "tareas", "listar tareas"]):
+    if any(x in text for x in ["ver tareas", "mis tareas", "listar", "listar tareas"]):
         return {"type": "LIST"}
 
     return {"type": "UNKNOWN"}

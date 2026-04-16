@@ -12,13 +12,20 @@ def save_task(task):
                 """
                 INSERT INTO squema1.tarea (nombre, deadline, tipo, usuario_tel)
                 VALUES (%s, %s, %s, %s)
+                ON CONFLICT (nombre, tipo, deadline, usuario_tel)
+                DO NOTHING
                 RETURNING id
                 """,
                 (task["title"], task["deadline"], task["tipo"], task["phone"])
             )
-            id_generado = cur.fetchone()[0] #type: ignore
+            result = cur.fetchone()
             conn.commit()
-            return id_generado
+            
+            if result:
+                return {"status": "inserted", "id": result[0]}
+            else:
+                return {"status": "duplicate"}
+            
     except Exception as e:
         conn.rollback()
         raise e

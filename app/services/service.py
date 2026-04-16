@@ -8,6 +8,6 @@ def create_user_task(phone, tipo, title, date):
         "deadline" : date,
         "tipo" : tipo
     }
-    save_task(task)
+    res = save_task(task)
 
-    return task
+    return res

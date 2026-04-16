@@ -7,7 +7,7 @@ import dateparser
 TYPE_KEYWORDS = { 
     "EXAMEN": ["parcial", "examen"],
     "TAREA": ["tarea", "entrega", "deber"],
-    "PRACTICO": ["practico", "repartido", "lectura", "leer", "ejercicios", "ejercicio"],
+    "PRACTICO": ["practico", "repartido", "lectura", "leer", "ejercicios", "ejercicio", "actividad"],
 }
 
 # Normalizar texto
@@ -84,7 +84,7 @@ def extract_date(text: str):
 
 def clean_task_title(text: str) -> str:
    # remover conectores comunes
-    print("ANTES:", repr(text))
+    
     noise_words = [
         "para", "el", "la", "los", "las",
         "del", "con", "por", "antes",
@@ -134,7 +134,7 @@ def clean_task_title(text: str) -> str:
 def parse_intent(text) -> dict:
     text = text.lower()
 
-    if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega"]):
+    if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo"]):
         return {"type": "ADD"}
 
     if any(x in text for x in ["ver tareas", "mis tareas", "listar", "listar tareas"]):
@@ -155,13 +155,17 @@ def parse_task_data(msg) -> dict:
     title_tarea = clean_task_title(text)
 
     if not title_tarea:
-        title_tarea = original
+        return {
+            "ok": False,
+            "error": "NO_TITLE",
+            "message": "Por favor ingrese un título"
+        }
 
     if not deadline: #sin deadline no se guarda tarea
         return {
             "ok": False,
             "error": "NO_DEADLINE",
-            "message": "No se pudo encontrar fecha"
+            "message": "Por favor ingrese una fecha para la tarea"
         }
         
 

@@ -40,13 +40,15 @@ def webhook():
         task = parse_task_data(incoming_msg)
 
         if not task["ok"]:
-            response.message("No pude crear la tarea: " + task["error"])
+            response.message("No pude crear la tarea: " + task["error"]," " + task["message"])
             return str(response)
 
         result = create_user_task(tel, task["data"]["tipo"], task["data"]["title"], task["data"]["deadline"])
 
-        if result:
+        if result["status"]=="inserted":
             response.message("Tarea creada")
+        elif result["status"]=="duplicate":
+            response.message("Tarea duplicada, no se añadió")
         else:
             response.message("Error creando tarea")
 

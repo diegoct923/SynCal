@@ -140,6 +140,9 @@ def parse_intent(text) -> dict:
     if any(x in text for x in ["ver tareas", "mis tareas", "listar", "listar tareas"]):
         return {"type": "LIST"}
 
+    if any(x in text for x in ["ver calendario", "mi calendario", "calendario", "mostrar calendario"]):
+        return {"type": "CALENDAR"}
+
     return {"type": "UNKNOWN"}
 
 

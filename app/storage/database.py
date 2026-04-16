@@ -3,7 +3,7 @@ import psycopg2
 def connect_db(): 
     
     conn = psycopg2.connect(
-        host="localhost",
+        host="186.50.89.1",
         database="syncal",
         user="postgres",
         password="asddsa",  

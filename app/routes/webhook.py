@@ -9,7 +9,8 @@ from app.storage.user_store import (
 )
 from config.config import BASE_URL
 import os
-
+from app.utils.state import generar_state
+from app.storage.sesiones import guardar_state
 load_dotenv()
 
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -20,6 +21,9 @@ def webhook():
     sender = request.form.get("From")
     phone = sender.split(':+') #type: ignore
     tel = phone[1]
+    
+    state = generar_state()
+    guardar_state(state, tel)
 
     print(f"Mensaje de {tel}: {incoming_msg}")
 
@@ -62,6 +66,9 @@ def webhook():
 
             response.message(msg)
 
+    elif intent["type"] == "CALENDAR":
+        link= f"{BASE_URL}/calendar?state={state}"        
+        response.message(f" Acá tenés tu calendario:\n{link}")    
 
     elif intent["type"] == "UNKNOWN":
         response.message(

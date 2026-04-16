@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRON - Calendario</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="calendar-page">
+
+    <!-- Header superior -->
+    <header class="calendar-topbar">
+      <div class="calendar-logo">
+        <img src="{{ url_for('static', filename='logo_tron.png') }}">
+      </div>
+
+      <div class="calendar-legend">
+        <span class="legend-item">
+          <span class="legend-dot alta"></span>
+          Alta
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot media"></span>
+          Media
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot baja"></span>
+          Baja
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot completada"></span>
+          Completada
+        </span>
+      </div>
+    </header>
+
+    <!-- Contenedor principal calendario -->
+    <section class="calendar-container">
+
+      <!-- Encabezado del calendario -->
+      <div class="calendar-header">
+        <h1 class="calendar-title" id="calendarTitle">Abril 2026</h1>
+
+        <div class="calendar-view-toggle">
+            <button class="toggle-btn active" id="monthViewBtn">Mes</button>
+            <button class="toggle-btn" id="weekViewBtn">Semana</button>
+        </div>
+      </div>
+
+      <hr class="calendar-divider" />
+
+      <!-- Nombres de los días -->
+      <div class="calendar-weekdays" id="monthWeekdays">
+        <div class="weekday">LUN</div>
+        <div class="weekday">MAR</div>
+        <div class="weekday">MIE</div>
+        <div class="weekday">JUE</div>
+        <div class="weekday">VIE</div>
+        <div class="weekday">SAB</div>
+        <div class="weekday">DOM</div>
+      </div>
+
+      <!-- Navegación lateral -->
+      <button class="calendar-nav prev" id="prevMonth" aria-label="Mes anterior">
+      </button>
+
+      <button class="calendar-nav next" id="nextMonth" aria-label="Mes siguiente">
+      </button>
+
+        <div id="monthLayout">
+            <div class="calendar-grid" id="calendarGrid">
+
+                <!-- Semana 1 -->
+                <article class="calendar-day other-month">
+                    <span class="day-number">29</span>
+                </article>
+
+                <article class="calendar-day other-month">
+                    <span class="day-number">30</span>
+                </article>
+
+                <article class="calendar-day other-month">
+                    <span class="day-number">31</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">1</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">2</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">3</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">4</span>
+                </article>
+
+                <!-- Semana 2 -->
+                <article class="calendar-day">
+                    <span class="day-number">5</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">6</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">7</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">8</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">9</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">10</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">11</span>
+                </article>
+
+                <!-- Semana 3 -->
+                <article class="calendar-day">
+                    <span class="day-number">12</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">13</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">14</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">15</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">16</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">17</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">18</span>
+                </article>
+
+                <!-- Semana 4 -->
+                <article class="calendar-day">
+                    <span class="day-number">19</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">20</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">21</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">22</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">23</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">24</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">25</span>
+                </article>
+
+                <!-- Semana 5 -->
+                <article class="calendar-day">
+                    <span class="day-number">26</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">27</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">28</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">29</span>
+                </article>
+
+                <article class="calendar-day">
+                    <span class="day-number">30</span>
+                </article>
+
+                <article class="calendar-day other-month">
+                    <span class="day-number">1</span>
+                </article>
+
+                <article class="calendar-day other-month">
+                    <span class="day-number">2</span>
+                </article>
+            </div>
+        </div>
+      
+        <div class="week-view-wrapper hidden" id="weekViewWrapper">
+            <div class="week-layout" id="weekLayout">
+                <section class="week-calendar-section">
+                    <div class="week-days-header" id="weekDaysHeader"></div>
+                    <div class="week-board" id="weekBoard"></div>
+                </section>
+            </div>
+
+            <aside class="week-summary-panel" id="weekSummaryPanel">
+                <h2 class="week-summary-title">Resumen Semanal</h2>
+
+                <div class="week-summary-divider"></div>
+
+                <div class="week-summary-cards">
+                    <div class="summary-card">
+                        <span class="summary-number" id="weeklyTaskCount">0</span>
+                        <span class="summary-label">Tareas</span>
+                    </div>
+
+                    <div class="summary-card critical">
+                        <span class="summary-number" id="weeklyCriticalCount">0</span>
+                        <span class="summary-label">Críticas</span>
+                    </div>
+                </div>
+
+                <div class="weekly-load-section">
+                    <h3 class="weekly-load-title">Carga por día</h3>
+                    <div class="weekly-load-list" id="weeklyLoadList"></div>
+                </div>
+
+                <div class="weekly-tip-box" id="weeklyTipBox">
+                    Jueves y viernes son días críticos. Priorizá estudio el lunes.
+                </div>
+            </aside>
+        </div>
+      
+      
+    </section>
+  </main>
+</body>
+<script>
+    const tasks = {{ tareas | tojson }};
+</script>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</html>

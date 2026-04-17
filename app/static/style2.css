@@ -1,0 +1,236 @@
+/* VARIABLES: Para que sea fácil cambiar colores luego */
+:root {
+  --bg-page: #f5f6f8;
+  --bg-card: #ffffff;
+  --border-color: #d8dde5;
+  --text-main: #111111;
+  --text-muted: #67748d;
+  --radius-calendar: 32px;
+  --radius-day: 18px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+.calendar-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 20px; /* Reducido para móviles */
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* HEADER SUPERIOR */
+.calendar-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap; /* Para que el logo y leyenda se apilen si no hay espacio */
+  gap: 15px;
+}
+
+.calendar-logo img {
+  width: 80px;
+  height: auto;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 15px;
+  background: #eef1f5;
+  border: 2px solid var(--border-color);
+  border-radius: 999px;
+  padding: 8px 20px;
+  overflow-x: auto; /* Scroll si la leyenda es muy larga */
+  max-width: 100%;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-dot.alta { background: #e53935; }
+.legend-dot.media { background: #f57c20; }
+.legend-dot.baja { background: #2f6de0; }
+.legend-dot.completada { background: #22a652; }
+
+/* CONTENEDOR PRINCIPAL */
+.calendar-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-calendar);
+  padding: 25px;
+  position: relative;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.calendar-title {
+  font-size: clamp(20px, 5vw, 30px); /* Tamaño fluido */
+  font-weight: 800;
+}
+
+/* BOTONES DE VISTA */
+.calendar-view-toggle {
+  display: flex;
+  background: #dfe5ec;
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.toggle-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: 0.3s;
+}
+
+.toggle-btn.active {
+  background: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* EL SECRETO DE LA RESPONSIVIDAD: Scroll horizontal controlado */
+#monthLayout, .week-calendar-section {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -10px; /* Expande un poco para que el scroll no se pegue al borde */
+  padding: 0 10px;
+}
+
+.calendar-weekdays, .calendar-grid, .week-days-header, .week-board {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(130px, 1fr)); /* Evita que el día mida menos de 130px */
+  gap: 12px;
+  min-width: 910px; /* 130px * 7 días */
+}
+
+/* DÍAS DEL CALENDARIO */
+.calendar-day {
+  min-height: 110px;
+  background: #f8f9fb;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-day);
+  padding: 10px;
+  transition: 0.2s;
+}
+
+.calendar-day:hover {
+  border-color: #2f6de0;
+  background: white;
+}
+
+.day-number {
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* TAREAS */
+.task-item {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-weight: 700;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prioridad-alta { background: #fee2e2; color: #b91c1c; border-left-color: #b91c1c; }
+.prioridad-media { background: #ffedd5; color: #c2410c; border-left-color: #c2410c; }
+.prioridad-baja { background: #dbeafe; color: #1d4ed8; border-left-color: #1d4ed8; }
+.prioridad-completada { background: #dcfce7; color: #15803d; border-left-color: #15803d; text-decoration: line-through; }
+
+/* VISTA SEMANAL - PANEL LATERAL */
+.week-view-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 25px;
+}
+
+.week-summary-panel {
+  background: #f8f9fb;
+  border: 2px solid var(--border-color);
+  border-radius: 24px;
+  padding: 20px;
+}
+
+/* NAVEGACIÓN (FLECHAS) */
+.calendar-nav {
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-nav:hover { background: #f0f0f0; }
+.calendar-nav.prev { left: -20px; }
+.calendar-nav.next { right: -20px; }
+
+/* MEDIA QUERIES */
+@media (max-width: 1100px) {
+  .week-view-wrapper {
+    grid-template-columns: 1fr; /* Panel resumen abajo */
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .calendar-nav {
+    display: none; /* En móvil usamos scroll, no flechas flotantes */
+  }
+  
+  .calendar-container {
+    padding: 15px;
+    border-radius: 20px;
+  }
+}
+
+.hidden { display: none !important; }

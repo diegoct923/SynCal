@@ -45,7 +45,7 @@ def extract_date(text: str):
         r'\b(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
         
         # "20 de abril"
-        r'\b\d{1,2}\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
+        r'\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
         
         # 15/04 o 15-04
         r'\b\d{1,2}[/-]\d{1,2}\b',
@@ -70,7 +70,7 @@ def extract_date(text: str):
     
      #intentar parsear cada candidato
     for candidato in candidatos:
-        date = dateparser.parse(candidato, settings={"RELATIVE_BASE": datetime.now()})
+        date = dateparser.parse(candidato, languages=["es"], settings={"PREFER_DATES_FROM": "future", "RELATIVE_BASE": datetime.now()})
         if date:
             print(date)
             return date
@@ -134,7 +134,7 @@ def clean_task_title(text: str) -> str:
 def parse_intent(text) -> dict:
     text = text.lower()
 
-    if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo"]):
+    if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
         return {"type": "ADD"}
 
     if any(x in text for x in ["ver tareas", "mis tareas", "listar", "listar tareas"]):
@@ -147,7 +147,6 @@ def parse_intent(text) -> dict:
 
 
 def parse_task_data(msg) -> dict:
-    original = msg
     text = normalize(msg)
 
     deadline = extract_date(text)

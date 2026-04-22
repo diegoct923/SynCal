@@ -1,6 +1,6 @@
 import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, date
 import dateparser
 
 #tipos de tareas
@@ -41,19 +41,22 @@ def extract_date(text: str):
 
     #patrones en que puede venir fecha  ej : añadir parcial matemáticas jueves 23 de abril
     patterns = [ 
-        # combinaciones tipo "jueves 20 de abril"
+        #ISO 8601 primero
+        r'\b\d{4}[/-]\d{2}[/-]\d{2}\b',
+        
+        #combinaciones tipo "jueves 20 de abril"
         r'\b(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
         
-        # "20 de abril"
+        #"20 de abril"
         r'\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
         
-        # 15/04 o 15-04
-        r'\b\d{1,2}[/-]\d{1,2}\b',
+        #15/04 o 15-04
+        r'(?<!\d)\b\d{1,2}[/-]\d{1,2}\b(?!\d)',
 
-        # expresiones relativas
+        #expresiones relativas
         r'\b(hoy|manana|pasado manana)\b',
 
-        # "jueves", "viernes", etc.
+        #"jueves", "viernes", etc.
         r'\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b'        
     ]
 
@@ -70,12 +73,42 @@ def extract_date(text: str):
     
      #intentar parsear cada candidato
     for candidato in candidatos:
-        date = dateparser.parse(candidato, languages=["es"], settings={"PREFER_DATES_FROM": "future", "RELATIVE_BASE": datetime.now()})
+        #parsear iso 8601 directo
+        iso_match = re.fullmatch(r'(\d{4})[/-](\d{2})[/-](\d{2})', candidato)
+        if iso_match:
+            try:
+                return datetime(int(iso_match.group(1)), int(iso_match.group(2)), int(iso_match.group(3))).date()
+            except ValueError:
+                continue
+        date = dateparser.parse(candidato, languages=["es"], settings={"RELATIVE_BASE": datetime.now()})
         if date:
-            print(date)
-            return date
+            return date.date()
+    return None
 
-    
+#extraer hora
+
+def extract_time(text: str):
+    patterns = [
+        # "a las 18:30" o "a las 6:30pm"
+        r'\ba\s+las\s+\d{1,2}:\d{2}(?:\s*[ap]m)?\b',
+        # "18:30pm" o "6:30 am"
+        r'\b\d{1,2}:\d{2}(?:\s*[ap]m)?\b',
+        # "18h30"
+        r'\b\d{1,2}h\d{2}\b',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            raw = match.group()
+
+            # normalizar: sacar "a las", espacios
+            raw = re.sub(r'^a\s+las\s+', '', raw).strip()
+            raw = re.sub(r'(\d)h(\d)', r'\1:\2', raw)# "18h30" -> "18:30"
+
+            parsed = dateparser.parse(raw, languages=["es"], settings={"RELATIVE_BASE": datetime.now()})
+            if parsed:
+                return parsed.time()
 
     return None
 
@@ -91,20 +124,27 @@ def clean_task_title(text: str) -> str:
         "hacer", "tengo", "que", "agregar", 
         "anadir", "crear", "parcial", "entrega", "de", "listar"
     ]
+       
 
-     # noise words
+    # noise words
     for word in noise_words:
         text = re.sub(rf'\b{word}\b', '', text)
-
+    
     text = re.sub(r'\s+', ' ', text).strip() #normalizar
    
+    #remover horas
+    text = re.sub(r'\ba\s+las\s+\d{1,2}:\d{2}(?:\s*[ap]m)?\b', '', text)
+    text = re.sub(r'\b\d{1,2}:\d{2}(?:\s*[ap]m)?\b', '', text)
+    text = re.sub(r'\b\d{1,2}h\d{2}\b', '', text)
+    text = re.sub(r'\s+', ' ', text).strip() 
 
-    
-    # remover fechas explícitas
-    text = re.sub(r'\d{1,2}/\d{1,2}', '', text) #ej : 12/04
+    #remover iso 8601, antes que el patrón corto
+    text = re.sub(r'\b\d{4}[/-]\d{2}[/-]\d{2}\b', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
-    text = re.sub(r'\d{1,2}-\d{1,2}', '', text) #ej : 12-04
-    text = re.sub(r'\s+', ' ', text).strip() #normalizar
+
+    #remover fechas cortas 
+    text = re.sub(r'(?<!\d)\b\d{1,2}[/-]\d{1,2}\b(?!\d)', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
     
     
     # remover días y relativos
@@ -137,11 +177,17 @@ def parse_intent(text) -> dict:
     if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
         return {"type": "ADD"}
 
+    if any(x in text for x in ["ver tareas del día", "ver tareas del dia", "mis tareas de hoy", "listar tareas hoy", "listar tareas del dia", "listar tareas del día", "ver tareas hoy", "ver tareas de hoy"]):
+        return {"type": "LIST_DAY"}
+
     if any(x in text for x in ["ver tareas", "mis tareas", "listar", "listar tareas"]):
         return {"type": "LIST"}
 
     if any(x in text for x in ["ver calendario", "mi calendario", "calendario", "mostrar calendario"]):
         return {"type": "CALENDAR"}
+    
+    if any(x in text for x in ["completar tarea", "completar tareas", "completar", "marcar tarea completada", "marcar tareas completadas", "finalizar tarea" ]):
+        return {"type": "COMPLETE"}
 
     return {"type": "UNKNOWN"}
 
@@ -149,7 +195,8 @@ def parse_intent(text) -> dict:
 def parse_task_data(msg) -> dict:
     text = normalize(msg)
 
-    deadline = extract_date(text)
+    fecha = extract_date(text)
+    hora = extract_time(text)
     tipo_tarea = detect_tipo(text)
     title_tarea = clean_task_title(text)
 
@@ -157,23 +204,32 @@ def parse_task_data(msg) -> dict:
         return {
             "ok": False,
             "error": "NO_TITLE",
-            "message": "Por favor ingrese un título"
+            "message": "Por favor ingrese un título."
         }
 
-    if not deadline: #sin deadline no se guarda tarea
+    if not fecha: #sin deadline no se guarda tarea
         return {
             "ok": False,
             "error": "NO_DEADLINE",
-            "message": "Por favor ingrese una fecha para la tarea"
+            "message": "Por favor ingrese una fecha para la tarea."
         }
         
+    deadline = datetime.combine(fecha, hora) if hora else fecha
+    if deadline < date.today(): #si la fecha es anterior al día del registro, no se registra 
+        return{
+            "ok": False,
+            "error": "EXPIRED DATE",
+            "message": "La fecha ingresada es anterior al día del registro."
+
+        }
 
     return {
         "ok": True, #hay deadline
         "data": {
             "tipo": tipo_tarea,
             "title": title_tarea,
-            "deadline": deadline.isoformat()
+            "deadline": deadline.isoformat(),
+            "has_time" : hora is not None
         }
     }
     

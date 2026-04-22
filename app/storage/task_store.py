@@ -39,17 +39,90 @@ def get_tasks(tel):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, nombre, deadline, tipo, usuario_tel FROM squema1.tarea WHERE usuario_tel = %s",
+                "SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea WHERE usuario_tel = %s ORDER BY deadline ASC",
                 (tel,)
             )
             rows = cur.fetchall()
             return [
-                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4]}
+                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4], "status": r[5]}
                 for r in rows
             ]
     except Exception as e:
+        conn.rollback()
         raise e
     finally:
         conn.close()
-    
+        
+
+def get_tasks_day(tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, nombre, deadline, tipo, usuario_tel, status 
+                FROM squema1.tarea 
+                WHERE usuario_tel = %s 
+                AND deadline::date = CURRENT_DATE
+                ORDER BY deadline ASC
+                """,
+                (tel,)
+            )
+            rows = cur.fetchall()
+            return [
+                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4], "status": r[5]}
+                for r in rows
+            ]
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+def get_tasks_to_complete(tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea WHERE usuario_tel = %s AND status = 'PENDIENTE' ORDER BY deadline ASC",
+                (tel,)
+            )
+            rows = cur.fetchall()
+            return [
+                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4], "status": r[5]}
+                for r in rows
+            ]
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
    
+def completar_tarea(tel, task_id):
+    conn = connect_db()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE squema1.tarea
+                SET status = 'COMPLETADA'
+                WHERE id = %s AND usuario_tel = %s
+                """,
+                (task_id, tel)
+            )
+
+            # check si se actualizó correctamente
+            if cur.rowcount == 0:
+                print("No existe esa tarea para ese usuario")
+                conn.rollback()  # opcional pero prolijo
+                return False
+
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

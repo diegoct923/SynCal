@@ -1,4 +1,4 @@
-/* VARIABLES: Para que sea fácil cambiar colores luego */
+/* VARIABLES */
 :root {
   --bg-page: #f5f6f8;
   --bg-card: #ffffff;
@@ -7,6 +7,7 @@
   --text-muted: #67748d;
   --radius-calendar: 32px;
   --radius-day: 18px;
+  --accent-color: #2f6de0;
 }
 
 * {
@@ -19,12 +20,13 @@ body {
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-page);
   color: var(--text-main);
+  line-height: 1.4;
 }
 
 .calendar-page {
   width: 100%;
   min-height: 100vh;
-  padding: 20px; /* Reducido para móviles */
+  padding: clamp(10px, 3vw, 25px);
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -35,15 +37,11 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  flex-wrap: wrap; /* Para que el logo y leyenda se apilen si no hay espacio */
+  flex-wrap: wrap; 
   gap: 15px;
 }
 
-.calendar-logo img {
-  width: 80px;
-  height: auto;
-}
-
+/* LEYENDA: Mejoramos el scroll en móviles */
 .calendar-legend {
   display: flex;
   gap: 15px;
@@ -51,130 +49,83 @@ body {
   border: 2px solid var(--border-color);
   border-radius: 999px;
   padding: 8px 20px;
-  overflow-x: auto; /* Scroll si la leyenda es muy larga */
+  overflow-x: auto;
   max-width: 100%;
+  scrollbar-width: none; /* Oculta scrollbar en Firefox */
 }
+.calendar-legend::-webkit-scrollbar { display: none; } /* Oculta scrollbar en Chrome/Safari */
 
 .legend-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
-
-.legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.legend-dot.alta { background: #e53935; }
-.legend-dot.media { background: #f57c20; }
-.legend-dot.baja { background: #2f6de0; }
-.legend-dot.completada { background: #22a652; }
 
 /* CONTENEDOR PRINCIPAL */
 .calendar-container {
   background: var(--bg-card);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-calendar);
-  padding: 25px;
+  padding: clamp(15px, 4vw, 25px);
   position: relative;
 }
 
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 15px;
-}
-
-.calendar-title {
-  font-size: clamp(20px, 5vw, 30px); /* Tamaño fluido */
-  font-weight: 800;
-}
-
-/* BOTONES DE VISTA */
-.calendar-view-toggle {
-  display: flex;
-  background: #dfe5ec;
-  border-radius: 999px;
-  padding: 4px;
-}
-
-.toggle-btn {
-  border: none;
-  background: transparent;
-  padding: 8px 20px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 700;
-  transition: 0.3s;
-}
-
-.toggle-btn.active {
-  background: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* EL SECRETO DE LA RESPONSIVIDAD: Scroll horizontal controlado */
+/* GRID DEL CALENDARIO: Adaptable */
 #monthLayout, .week-calendar-section {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin: 0 -10px; /* Expande un poco para que el scroll no se pegue al borde */
-  padding: 0 10px;
+  margin: 0 -5px;
 }
 
 .calendar-weekdays, .calendar-grid, .week-days-header, .week-board {
   display: grid;
-  grid-template-columns: repeat(7, minmax(130px, 1fr)); /* Evita que el día mida menos de 130px */
-  gap: 12px;
-  min-width: 910px; /* 130px * 7 días */
+  /* Reducimos el mínimo a 110px para que quepan más días antes de scrollear */
+  grid-template-columns: repeat(7, minmax(110px, 1fr)); 
+  gap: 10px;
+  min-width: 770px; /* 110px * 7 */
 }
 
-/* DÍAS DEL CALENDARIO */
+/* DÍAS */
 .calendar-day {
-  min-height: 110px;
+  min-height: 100px;
   background: #f8f9fb;
   border: 2px solid var(--border-color);
   border-radius: var(--radius-day);
-  padding: 10px;
-  transition: 0.2s;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, border-color 0.2s;
 }
 
 .calendar-day:hover {
-  border-color: #2f6de0;
+  border-color: var(--accent-color);
   background: white;
+  transform: translateY(-2px);
 }
 
 .day-number {
   font-weight: 800;
   color: var(--text-muted);
-  font-size: 14px;
-  margin-bottom: 8px;
-  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 
-/* TAREAS */
+/* TAREAS: Optimizadas para móviles */
 .task-item {
-  font-size: 11px;
-  padding: 4px 8px;
+  font-size: 10.5px;
+  padding: 3px 8px;
   border-radius: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   font-weight: 700;
   border-left: 3px solid transparent;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: default;
 }
-
-.prioridad-alta { background: #fee2e2; color: #b91c1c; border-left-color: #b91c1c; }
-.prioridad-media { background: #ffedd5; color: #c2410c; border-left-color: #c2410c; }
-.prioridad-baja { background: #dbeafe; color: #1d4ed8; border-left-color: #1d4ed8; }
-.prioridad-completada { background: #dcfce7; color: #15803d; border-left-color: #15803d; text-decoration: line-through; }
 
 /* VISTA SEMANAL - PANEL LATERAL */
 .week-view-wrapper {
@@ -183,19 +134,13 @@ body {
   gap: 25px;
 }
 
-.week-summary-panel {
-  background: #f8f9fb;
-  border: 2px solid var(--border-color);
-  border-radius: 24px;
-  padding: 20px;
-}
-
-/* NAVEGACIÓN (FLECHAS) */
+/* FLECHAS DE NAVEGACIÓN: Mejor posicionadas */
 .calendar-nav {
   position: absolute;
   top: 50%;
-  width: 40px;
-  height: 40px;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
   background: white;
   border: 2px solid var(--border-color);
   border-radius: 50%;
@@ -204,32 +149,62 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
-.calendar-nav:hover { background: #f0f0f0; }
-.calendar-nav.prev { left: -20px; }
-.calendar-nav.next { right: -20px; }
+.calendar-nav.prev { left: -22px; }
+.calendar-nav.next { right: -22px; }
 
-/* MEDIA QUERIES */
-@media (max-width: 1100px) {
+/* MEDIA QUERIES ESTRATÉGICOS */
+
+@media (max-width: 1200px) {
   .week-view-wrapper {
-    grid-template-columns: 1fr; /* Panel resumen abajo */
+    grid-template-columns: 1fr; /* Panel resumen a ancho completo abajo */
+  }
+  
+  .week-summary-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
   }
 }
 
 @media (max-width: 768px) {
+  .calendar-topbar {
+    flex-direction: column;
+    align-items: center;
+  }
+
   .calendar-header {
     flex-direction: column;
-    align-items: flex-start;
+    text-align: center;
+    gap: 15px;
   }
-  
+
   .calendar-nav {
-    display: none; /* En móvil usamos scroll, no flechas flotantes */
+    display: none; /* En móviles el usuario desliza con el dedo */
+  }
+
+  .calendar-container {
+    border-radius: 24px;
+    padding: 15px;
   }
   
-  .calendar-container {
-    padding: 15px;
-    border-radius: 20px;
+  /* Hacemos que los días sean un poco más altos para que sea fácil tocar con el dedo */
+  .calendar-day {
+    min-height: 90px;
+  }
+}
+
+/* Ajuste fino para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .calendar-title {
+    font-size: 20px;
+  }
+  
+  .toggle-btn {
+    padding: 8px 15px;
+    font-size: 14px;
   }
 }
 

@@ -1,7 +1,7 @@
 from flask import request
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
-from app.utils.parser import parse_task_data, parse_intent
+from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm
 from app.services.service import create_user_task, complete_task
 from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete
 from app.storage.user_store import (
@@ -10,6 +10,7 @@ from app.storage.user_store import (
 from config.config import BASE_URL
 import os
 from app.utils.state import generar_state
+from app.utils.parser import parsear_con_llm
 from app.storage.sesiones import guardar_state
 from app.storage.conversacion import obtener_contexto, limpiar_contexto, guardar_contexto
 load_dotenv()
@@ -33,7 +34,7 @@ def webhook():
     response = MessagingResponse()
  
     contexto = obtener_contexto(tel) #chequear contexto pendiente antes de parse intent
-
+    
     if contexto == "id_tarea_completar":
         task_id = incoming_msg.strip() #type: ignore
         
@@ -52,7 +53,6 @@ def webhook():
 
         limpiar_contexto(tel)  #limpiar contexto al terminar conversación
         return str(response)
-
 
     intent = parse_intent(incoming_msg) #ADD, LIST, UNKNOWN
 
@@ -110,6 +110,38 @@ def webhook():
     elif intent["type"] == "CALENDAR":
         link= f"{BASE_URL}/calendar?state={state}"        
         response.message(f" Acá tenés tu calendario:\n{link}")    
+    
+    
+    
+    elif intent["type"] == "MULTI":
+        result = parsear_con_llm(incoming_msg)
+    
+        if not result["ok"]:
+            response.message(result["message"])
+        else:
+            confirmaciones = []
+            errores = []
+            for tarea in result["data"]:
+                if not tarea["deadline"]:
+                    errores.append(f" '{tarea['titulo']}' no tiene fecha, no se guardó.")
+                    continue
+            
+                db_result = create_user_task(tel, tarea["tipo"], tarea["titulo"], tarea["deadline"])
+                print(f"DB RESULT: {db_result}")
+
+                if db_result["status"] == "inserted":
+                    confirmaciones.append(f"{tarea['titulo']}")
+                elif db_result["status"] == "duplicate":
+                    errores.append(f" '{tarea['titulo']}' ya existe, no se añadió.")
+                else:
+                    errores.append(f" '{tarea['titulo']}' error al guardar.")
+        
+            if confirmaciones:
+                response.message("Tareas agregadas correctamente:\n" + "\n".join(confirmaciones))
+            if errores:
+                response.message("Hubo algunos problemas:\n" + "\n".join(errores))
+            
+
     
     # COMPLETE
 

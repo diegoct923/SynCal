@@ -16,7 +16,7 @@ def save_task(task):
                 DO NOTHING
                 RETURNING id
                 """,
-                (task["title"], task["deadline"], task["tipo"], task["phone"])
+                (task["title"].lower().strip(), task["deadline"], task["tipo"], task["phone"])
             )
             result = cur.fetchone()
             conn.commit()

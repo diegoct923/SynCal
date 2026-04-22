@@ -1,7 +1,58 @@
 import re
 import unicodedata
+import json
 from datetime import datetime, date
 import dateparser
+from app.integrations.llm_haiku import call_haiku
+
+
+
+SYSTEM_PROMPT = """
+Eres un parser de tareas académicas. Del mensaje del usuario extrae TODAS las tareas mencionadas.
+- Si tiene hora: "YYYY-MM-DDTHH:MM"
+- Si no tiene hora: "YYYY-MM-DD"
+Devuelve SOLO un JSON válido sin texto adicional, con este formato:
+{{
+  "tareas": [
+    {{
+      "titulo": "nombre limpio de la tarea",
+      "tipo": "EXAMEN|TAREA|PRACTICO|UNKNOWN",
+      "deadline": "YYYY-MM-DDHH:MM o null",
+    }}
+  ]
+}}
+"""
+
+
+def parsear_con_llm(msg):
+    prompt = SYSTEM_PROMPT.format(today=date.today().isoformat())
+    raw = call_haiku(prompt, msg)
+
+    print(f"RAW LLM RESPONSE: {repr(raw)}")  # temporal para debug
+    
+    # limpiar backticks si los hay
+    raw = raw.strip()
+    raw = re.sub(r'^```json\s*', '', raw)
+    raw = re.sub(r'^```\s*', '', raw)
+    raw = re.sub(r'```$', '', raw)
+    raw = raw.strip()
+
+
+
+    tareas = json.loads(raw)["tareas"]
+
+    if not tareas:
+        return {
+            "ok": False,
+            "error": "NO_TASKS",
+            "message": "No se encontraron tareas válidas."
+        }
+
+    return {
+        "ok": True,
+        "data": tareas
+    }
+    
 
 #tipos de tareas
 TYPE_KEYWORDS = { 
@@ -174,6 +225,9 @@ def clean_task_title(text: str) -> str:
 def parse_intent(text) -> dict:
     text = text.lower()
 
+    if any(x in text for x in ["!multi"]):
+        return {"type": "MULTI"}
+
     if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
         return {"type": "ADD"}
 
@@ -229,7 +283,6 @@ def parse_task_data(msg) -> dict:
             "tipo": tipo_tarea,
             "title": title_tarea,
             "deadline": deadline.isoformat(),
-            "has_time" : hora is not None
         }
     }
     

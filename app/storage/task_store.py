@@ -126,3 +126,31 @@ def completar_tarea(tel, task_id):
         raise e
     finally:
         conn.close()
+
+
+def reagendar_tarea(task_id, deadline):
+    conn = connect_db()
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE squema1.tarea
+                SET deadline = %s
+                WHERE id = %s
+                """,
+                (deadline, task_id)
+            )
+
+            if cur.rowcount == 0:
+                print("No existe esa tarea")
+                conn.rollback()
+                return False
+
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

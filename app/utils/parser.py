@@ -227,6 +227,9 @@ def parse_intent(text) -> dict:
 
     if any(x in text for x in ["!multi"]):
         return {"type": "MULTI"}
+    
+    if any(x in text for x in ["actualizar", "reagendar", "cambiar", "mover"]):
+        return {"type": "MOVE_TASK"}
 
     if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
         return {"type": "ADD"}

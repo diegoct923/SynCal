@@ -1,18 +1,18 @@
+import os
 from flask import request
+from datetime import datetime, date
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
-from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm
 from app.services.service import create_user_task, complete_task
-from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete
-from app.storage.user_store import (
-    create_user_if_not_exists
-)
+from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete, reagendar_tarea
+from app.storage.user_store import create_user_if_not_exists
 from config.config import BASE_URL
-import os
 from app.utils.state import generar_state
-from app.utils.parser import parsear_con_llm
+from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, extract_date, extract_time
 from app.storage.sesiones import guardar_state
 from app.storage.conversacion import obtener_contexto, limpiar_contexto, guardar_contexto
+
+
 load_dotenv()
 
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -35,6 +35,8 @@ def webhook():
  
     contexto = obtener_contexto(tel) #chequear contexto pendiente antes de parse intent
     
+    #Contexto Completar Tarea
+
     if contexto == "id_tarea_completar":
         task_id = incoming_msg.strip() #type: ignore
         
@@ -52,6 +54,37 @@ def webhook():
             response.message("Error al completar la tarea.")
 
         limpiar_contexto(tel)  #limpiar contexto al terminar conversación
+        return str(response)
+    
+    #Contexto Reagendar Tarea
+
+    if contexto == "id_tarea_mover":
+        message= incoming_msg.strip()
+        parts = message.split(sep=",") #type: ignore
+        task_id = parts[0]
+        date=extract_date(parts[1])
+        time=extract_time(parts[1])
+
+        if not task_id.isdigit():
+            response.message("Por favor responda con el número de la tarea.")
+            return str(response)
+        
+        if  date is None:
+            response.message("Por favor incluya una fecha válida.")
+            return str(response)
+        deadline = datetime.combine(date, time) if time else date
+        if deadline < date.today(): #si la fecha es anterior al día del registro, no se registra 
+            jason={
+            "ok": False,
+            "error": "EXPIRED DATE",
+            "message": "La fecha ingresada es anterior al día del registro."
+            }
+            response.message(f"Ocurrió un error con la fecha: {jason['error']}, {jason['message']}")
+            return str(response)
+
+        reagendar_tarea(task_id, deadline)
+        limpiar_contexto(tel)
+        response.message("Tarea reagendada con éxito.")  #limpiar contexto al terminar conversación
         return str(response)
 
     intent = parse_intent(incoming_msg) #ADD, LIST, UNKNOWN
@@ -155,6 +188,20 @@ def webhook():
                 msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
             
             guardar_contexto(tel, "id_tarea_completar")  # ← guardar que esperamos ID
+            response.message(msg)
+
+    # Reagendar
+
+    elif intent["type"] == "MOVE_TASK":
+        tasks = get_tasks_to_complete(tel)
+        if not tasks:
+            response.message("No tenés tareas aún.")
+        else:
+            msg = "¿Cuál tarea querés reagendar? Respondé de la siguiente manera  '(numero de tarea) , (nueva fecha)':\n"
+            for t in tasks:
+                msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
+            
+            guardar_contexto(tel, "id_tarea_mover")  # ← guardar que esperamos ID
             response.message(msg)
 
     # UNKNOWN

@@ -10,7 +10,7 @@ def obtener_tareas_db(phone):
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT t.nombre, t.deadline, t.tipo
+                SELECT t.id, t.nombre, t.deadline, t.tipo
                 FROM tarea t
                 JOIN usuario u ON u.tel = t.usuario_tel
                 WHERE u.tel = %s
@@ -19,8 +19,9 @@ def obtener_tareas_db(phone):
             filas = cur.fetchall()
 
             tareas = []
-            for nombre, deadline, tipo in filas:
+            for id, nombre, deadline, tipo in filas:
                 tareas.append({
+                    "id": id,
                     "date": deadline.strftime("%Y-%m-%d"),
                     "title": nombre,
                     "priority": tipo

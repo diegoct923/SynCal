@@ -1,0 +1,211 @@
+/* VARIABLES */
+:root {
+  --bg-page: #f5f6f8;
+  --bg-card: #ffffff;
+  --border-color: #d8dde5;
+  --text-main: #111111;
+  --text-muted: #67748d;
+  --radius-calendar: 32px;
+  --radius-day: 18px;
+  --accent-color: #2f6de0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.calendar-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: clamp(10px, 3vw, 25px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* HEADER SUPERIOR */
+.calendar-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap; 
+  gap: 15px;
+}
+
+/* LEYENDA: Mejoramos el scroll en móviles */
+.calendar-legend {
+  display: flex;
+  gap: 15px;
+  background: #eef1f5;
+  border: 2px solid var(--border-color);
+  border-radius: 999px;
+  padding: 8px 20px;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none; /* Oculta scrollbar en Firefox */
+}
+.calendar-legend::-webkit-scrollbar { display: none; } /* Oculta scrollbar en Chrome/Safari */
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* CONTENEDOR PRINCIPAL */
+.calendar-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-calendar);
+  padding: clamp(15px, 4vw, 25px);
+  position: relative;
+}
+
+/* GRID DEL CALENDARIO: Adaptable */
+#monthLayout, .week-calendar-section {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -5px;
+}
+
+.calendar-weekdays, .calendar-grid, .week-days-header, .week-board {
+  display: grid;
+  /* Reducimos el mínimo a 110px para que quepan más días antes de scrollear */
+  grid-template-columns: repeat(7, minmax(110px, 1fr)); 
+  gap: 10px;
+  min-width: 770px; /* 110px * 7 */
+}
+
+/* DÍAS */
+.calendar-day {
+  min-height: 100px;
+  background: #f8f9fb;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-day);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.calendar-day:hover {
+  border-color: var(--accent-color);
+  background: white;
+  transform: translateY(-2px);
+}
+
+.day-number {
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+/* TAREAS: Optimizadas para móviles */
+.task-item {
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  font-weight: 700;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+/* VISTA SEMANAL - PANEL LATERAL */
+.week-view-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 25px;
+}
+
+/* FLECHAS DE NAVEGACIÓN: Mejor posicionadas */
+.calendar-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.calendar-nav.prev { left: -22px; }
+.calendar-nav.next { right: -22px; }
+
+/* MEDIA QUERIES ESTRATÉGICOS */
+
+@media (max-width: 1200px) {
+  .week-view-wrapper {
+    grid-template-columns: 1fr; /* Panel resumen a ancho completo abajo */
+  }
+  
+  .week-summary-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-topbar {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .calendar-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+
+  .calendar-nav {
+    display: none; /* En móviles el usuario desliza con el dedo */
+  }
+
+  .calendar-container {
+    border-radius: 24px;
+    padding: 15px;
+  }
+  
+  /* Hacemos que los días sean un poco más altos para que sea fácil tocar con el dedo */
+  .calendar-day {
+    min-height: 90px;
+  }
+}
+
+/* Ajuste fino para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .calendar-title {
+    font-size: 20px;
+  }
+  
+  .toggle-btn {
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+}
+
+.hidden { display: none !important; }

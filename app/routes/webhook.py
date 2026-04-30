@@ -59,7 +59,7 @@ def webhook():
     #Contexto Reagendar Tarea
 
     if contexto == "id_tarea_mover":
-        message= incoming_msg.strip()
+        message= incoming_msg.strip() #type: ignore 
         parts = message.split(sep=",") #type: ignore
         task_id = parts[0]
         date=extract_date(parts[1])
@@ -105,6 +105,8 @@ def webhook():
             response.message("Tarea creada")
         elif result["status"]=="duplicate":
             response.message("Tarea duplicada, no se añadió")
+        elif result["status"]=="overlap":
+            response.message(f"Error al añadir tarea, ya hay una tarea existente en el horario ingresado:\nID:{result['id']}, TAREA:{result['nombre']}, FECHA:{result['deadline']} ")
         else:
             response.message("Error creando tarea")
 

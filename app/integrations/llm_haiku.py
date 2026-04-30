@@ -15,4 +15,4 @@ def call_haiku(system_prompt: str, user_message: str) -> str:
             {"role": "user", "content": user_message}
         ]
     )
-    return response.content[0].text
+    return response.content[0].text #type: ignore

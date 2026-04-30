@@ -1,7 +1,7 @@
 import re
 import unicodedata
 import json
-from datetime import datetime, date
+from datetime import datetime, date, time 
 import dateparser
 from app.integrations.llm_haiku import call_haiku
 
@@ -171,7 +171,7 @@ def clean_task_title(text: str) -> str:
     
     noise_words = [
         "para", "el", "la", "los", "las",
-        "del", "con", "por", "antes",
+        "del", "con", "por", "antes","a",
         "hacer", "tengo", "que", "agregar", 
         "anadir", "crear", "parcial", "entrega", "de", "listar"
     ]
@@ -224,6 +224,7 @@ def clean_task_title(text: str) -> str:
 #parsear intención
 def parse_intent(text) -> dict:
     text = text.lower()
+    text = normalize(text)
 
     if any(x in text for x in ["!multi"]):
         return {"type": "MULTI"}
@@ -231,7 +232,7 @@ def parse_intent(text) -> dict:
     if any(x in text for x in ["actualizar", "reagendar", "cambiar", "mover"]):
         return {"type": "MOVE_TASK"}
 
-    if any(x in text for x in ["agregar", "anadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
+    if any(x in text for x in ["agregar", "anadir","añadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
         return {"type": "ADD"}
 
     if any(x in text for x in ["ver tareas del día", "ver tareas del dia", "mis tareas de hoy", "listar tareas hoy", "listar tareas del dia", "listar tareas del día", "ver tareas hoy", "ver tareas de hoy"]):
@@ -271,8 +272,8 @@ def parse_task_data(msg) -> dict:
             "message": "Por favor ingrese una fecha para la tarea."
         }
         
-    deadline = datetime.combine(fecha, hora) if hora else fecha
-    if deadline < date.today(): #si la fecha es anterior al día del registro, no se registra 
+    deadline = datetime.combine(fecha, hora) if hora else datetime.combine(fecha, time.min)
+    if deadline.date() < date.today(): #si la fecha es anterior al día del registro, no se registra 
         return{
             "ok": False,
             "error": "EXPIRED DATE",

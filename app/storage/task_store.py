@@ -7,6 +7,25 @@ def save_task(task):
     conn = connect_db()
     try:
         with conn.cursor() as cur:
+            #check overlapping
+            if task["tipo"] in ("EXAMEN", "PRACTICO"):
+                cur.execute(
+                    """
+                    SELECT id, nombre, deadline FROM squema1.tarea
+                    WHERE tipo IN ('EXAMEN', 'PRACTICO') AND deadline = %s AND usuario_tel = %s
+                    """,
+                    (task["deadline"], task["phone"])
+                )
+                tarea_existente = cur.fetchall()
+                if tarea_existente:
+                    return {
+                        "status": "overlap", 
+                        "id": tarea_existente[0][0],
+                        "nombre": tarea_existente[0][1],
+                        "deadline": tarea_existente[0][2]
+                        }
+
+
             print(f"title={task['title']}, deadline={task['deadline']}, tipo={task['tipo']}, phone={task['phone']}")
             cur.execute(
                 """

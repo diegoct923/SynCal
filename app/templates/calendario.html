@@ -312,7 +312,8 @@
     </div>
 </body>
 <script>
-    const tasks = {{ tareas | tojson }};
+  const tasks   = {{ tareas | tojson }};
+  const sesiones = {{ sesiones | tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tasks.js') }}"></script>

@@ -316,3 +316,16 @@ function createTask(title, date, startHour, priority) {
   tasks.push(newTask);
   renderCalendar();
 }
+
+// Sesiones de estudio (subtareas generadas por el scheduler)
+// Inyectadas desde Flask igual que `tasks`
+function getSessionsForWeek(weekDates) {
+  const weekStrings = weekDates.map(d =>
+    formatDate(d.getFullYear(), d.getMonth(), d.getDate())
+  );
+  return sesiones.filter(s => weekStrings.includes(s.fecha));
+}
+
+function getSessionsForDate(dateString) {
+  return sesiones.filter(s => s.fecha === dateString);
+}

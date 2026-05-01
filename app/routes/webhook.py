@@ -11,11 +11,12 @@ from app.utils.state import generar_state
 from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, extract_date, extract_time
 from app.storage.sesiones import guardar_state
 from app.storage.conversacion import obtener_contexto, limpiar_contexto, guardar_contexto
-
+from app.utils.helpers import fmt
 
 load_dotenv()
 
 CLIENT_ID = os.getenv("CLIENT_ID")
+
 
 
 def webhook():
@@ -101,12 +102,29 @@ def webhook():
 
         result = create_user_task(tel, task["data"]["tipo"], task["data"]["title"], task["data"]["deadline"]) #devuelve json: {"status": "inserted", "id": "id_tarea"}
 
-        if result["status"]=="inserted":
-            response.message("Tarea creada")
+        if result["status"] == "inserted":
+            msg = "Tarea creada"
+
+            sesiones = result.get("sesiones", [])
+            if sesiones:
+                msg += "\n\nSesiones de estudio agendadas:"
+                for s in sesiones:
+                    if len(s["tramos"]) == 1:
+                        # Sesión continua
+                        ini, fin = s["tramos"][0]
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {fmt(ini)} a {fmt(fin)}"
+                    else:
+                        # Sesión partida en varios tramos
+                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {tramos_str}"
+            response.message(msg)   
+
         elif result["status"]=="duplicate":
             response.message("Tarea duplicada, no se añadió")
+
         elif result["status"]=="overlap":
             response.message(f"Error al añadir tarea, ya hay una tarea existente en el horario ingresado:\nID:{result['id']}, TAREA:{result['nombre']}, FECHA:{result['deadline']} ")
+        
         else:
             response.message("Error creando tarea")
 
@@ -147,6 +165,7 @@ def webhook():
         response.message(f" Acá tenés tu calendario:\n{link}")    
     
     
+    #MULTI
     
     elif intent["type"] == "MULTI":
         result = parsear_con_llm(incoming_msg)
@@ -164,10 +183,26 @@ def webhook():
                 db_result = create_user_task(tel, tarea["tipo"], tarea["titulo"], tarea["deadline"])
                 print(f"DB RESULT: {db_result}")
 
-                if db_result["status"] == "inserted":
-                    confirmaciones.append(f"{tarea['titulo']}")
+                if result["status"] == "inserted":
+                    msg = "Tarea creada"
+
+                    sesiones = result.get("sesiones", [])
+                    if sesiones:
+                        msg += "\n\nSesiones de estudio agendadas:"
+                        for s in sesiones:
+                            if len(s["tramos"]) == 1:
+                                # Sesión continua
+                                ini, fin = s["tramos"][0]
+                                msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {fmt(ini)} a {fmt(fin)}"
+                            else:
+                                # Sesión partida en varios tramos
+                                tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
+                                msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {tramos_str}"
+                    response.message(msg)       
+                
                 elif db_result["status"] == "duplicate":
                     errores.append(f" '{tarea['titulo']}' ya existe, no se añadió.")
+                    
                 else:
                     errores.append(f" '{tarea['titulo']}' error al guardar.")
         

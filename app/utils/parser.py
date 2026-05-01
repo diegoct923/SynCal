@@ -57,7 +57,7 @@ def parsear_con_llm(msg):
 #tipos de tareas
 TYPE_KEYWORDS = { 
     "EXAMEN": ["parcial", "examen"],
-    "TAREA": ["tarea", "entrega", "deber"],
+    "TAREA": ["tarea", "entrega", "deber", "presentacion"],
     "PRACTICO": ["practico", "repartido", "lectura", "leer", "ejercicios", "ejercicio", "actividad"],
 }
 

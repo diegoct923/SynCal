@@ -192,6 +192,41 @@ function renderWeeklyTasks(weekDates) {
         column.appendChild(taskItem);
       });
     });
+    //sesiones de estudio
+    const daySessions = sesiones.filter(s => s.fecha === dayDate);
+
+    daySessions.forEach(sesion => {
+      const startHour = sesion.hora_inicio;
+      const endHour   = sesion.hora_fin;
+      const duration  = endHour - startHour;
+
+      const block = document.createElement("div");
+      block.classList.add("week-task-item", "sesion-estudio");
+
+      //si tiene más de un tramo, mostrar los horarios de cada uno
+      let horariosStr;
+      if (sesion.tramos.length === 1) {
+        const t = sesion.tramos[0];
+        horariosStr = `${_fmtH(t.hora_inicio)} - ${_fmtH(t.hora_fin)}`;
+      } else {
+        horariosStr = sesion.tramos
+          .map(t => `${_fmtH(t.hora_inicio)}-${_fmtH(t.hora_fin)}`)
+          .join(" + ");
+      }
+
+      block.innerHTML = `
+        <strong>📚 ${sesion.tarea_nombre}</strong>
+        <span>${horariosStr}</span>
+      `;
+
+      block.style.top      = `${startHour * HOUR_HEIGHT}px`;
+      block.style.height   = `${duration * HOUR_HEIGHT - 8}px`;
+      block.style.left     = "6px";
+      block.style.width    = "calc(100% - 12px)";
+      block.style.opacity  = "0.85";
+
+      column.appendChild(block);
+    });  
   }
 }
 
@@ -269,4 +304,10 @@ function renderWeekHours() {
     hourItem.textContent = `${String(hour).padStart(2, "0")}:00`;
     weekHoursColumn.appendChild(hourItem);
   }
+}
+
+function _fmtH(hora) {
+  const h = Math.floor(hora);
+  const m = Math.round((hora - h) * 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }

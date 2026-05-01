@@ -26,7 +26,7 @@ def save_task(task):
                         }
 
 
-            print(f"title={task['title']}, deadline={task['deadline']}, tipo={task['tipo']}, phone={task['phone']}")
+            print(f"title={task['title']}, deadline={task['deadline']}, tipo={task['tipo']}, phone={task['phone']}") #log tarea a guardar
             cur.execute(
                 """
                 INSERT INTO squema1.tarea (nombre, deadline, tipo, usuario_tel)

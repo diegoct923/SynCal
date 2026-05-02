@@ -100,133 +100,107 @@ function renderWeeklyTasks(weekDates) {
 
     const dayDate = weekDateStrings[dayIndex];
 
+    // ── Tareas principales ────────────────────────────────────────────────
     const dayTasks = weekTasks
       .filter(task => task.date === dayDate)
-      .map(task => {
-        const startHour = Number(task.startHour ?? 9);
-        const duration = Number(task.duration ?? 1);
-        const endHour = Math.min(startHour + duration, 24);
+      .map(task => ({
+        ...task,
+        startHour: Number(task.startHour ?? 9),
+        duration:  Number(task.duration ?? 1),
+        endHour:   Math.min(Number(task.startHour ?? 9) + Number(task.duration ?? 1), 24),
+        _tipo: "tarea"
+      }))
+      .sort((a, b) => a.startHour - b.startHour);
 
-        return {
-          ...task,
-          startHour,
-          duration,
-          endHour
-        };
-      })
+    // ── Tramos de sesiones → un item por tramo ────────────────────────────
+    const daySessionItems = sesiones
+      .filter(s => s.date === dayDate)
+      .flatMap(sesion =>
+        sesion.tramos.map((tramo, i) => ({
+          id:         `s-${sesion.sesion_grupo}-${i}`,
+          title:      sesion.tarea_nombre,
+          tarea_tipo: sesion.tarea_tipo,
+          startHour:  tramo.hora_inicio,
+          duration:   tramo.hora_fin - tramo.hora_inicio,
+          endHour:    tramo.hora_fin,
+          esContinuacion: i > 0,
+          _tipo: "sesion"
+        }))
+      )
+      .sort((a, b) => a.startHour - b.startHour);
+
+    // ── Unificar y agrupar por solapamiento ───────────────────────────────
+    const allItems = [...dayTasks, ...daySessionItems]
       .sort((a, b) => a.startHour - b.startHour);
 
     const groups = [];
 
-    dayTasks.forEach(task => {
+    allItems.forEach(item => {
       let placed = false;
-
       for (const group of groups) {
         const groupStart = Math.min(...group.map(t => t.startHour));
-        const groupEnd = Math.max(...group.map(t => t.endHour));
-
-        const overlapsGroup = task.startHour < groupEnd && task.endHour > groupStart;
-
-        if (overlapsGroup) {
-          group.push(task);
+        const groupEnd   = Math.max(...group.map(t => t.endHour));
+        if (item.startHour < groupEnd && item.endHour > groupStart) {
+          group.push(item);
           placed = true;
           break;
         }
       }
-
-      if (!placed) {
-        groups.push([task]);
-      }
+      if (!placed) groups.push([item]);
     });
 
+    // ── Renderizar ────────────────────────────────────────────────────────
     groups.forEach(group => {
       const total = group.length;
 
-      group.forEach((task, index) => {
-        const taskItem = document.createElement("div");
-        taskItem.classList.add("week-task-item", getPriorityClass(task.priority));
-        taskItem.dataset.taskId = task.id;
-        taskItem.draggable = true;
+      group.forEach((item, index) => {
+        const el = document.createElement("div");
 
-        taskItem.innerHTML = `
-          <strong>${task.title}</strong>
-          <span>${String(task.startHour).padStart(2, "0")}:00 - ${String(task.endHour).padStart(2, "0")}:00</span>
-        `;
+        if (item._tipo === "tarea") {
+          el.classList.add("week-task-item", getPriorityClass(item.priority, item.status));
+          el.dataset.taskId = item.id;
+          el.draggable = true;
 
-        taskItem.style.top = `${task.startHour * HOUR_HEIGHT}px`;
-        taskItem.style.height = `${task.duration * HOUR_HEIGHT - 8}px`;
+          el.innerHTML = `
+            <strong>${item.title}</strong>
+            <span>${String(Math.floor(item.startHour)).padStart(2,"0")}:00 - ${String(Math.floor(item.endHour)).padStart(2,"0")}:00</span>
+          `;
 
-        taskItem.style.left = `calc(${index} * (100% / ${total}) + 6px)`;
-        taskItem.style.width = `calc((100% / ${total}) - 12px)`;
-        taskItem.style.right = "auto";
+          el.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openTaskMenu(Number(e.currentTarget.dataset.taskId), e.clientX, e.clientY);
+          });
 
-        taskItem.addEventListener("contextmenu", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
+          el.addEventListener("dragstart", () => { draggedTaskId = Number(item.id); });
+          el.addEventListener("dragend",   () => { draggedTaskId = null; });
 
-          openTaskMenu(
-            Number(e.currentTarget.dataset.taskId),
-            e.clientX,
-            e.clientY
-          );
-        });
+          if (highlightedTaskId === item.id) {
+            el.classList.add("week-task-highlighted");
+          }
 
-        taskItem.addEventListener("dragstart", () => {
-          draggedTaskId = Number(task.id);
-        });
+          if (highlightedTaskId !== null) {
+            setTimeout(() => { highlightedTaskId = null; renderCalendar(); }, 3000);
+          }
 
-        taskItem.addEventListener("dragend", () => {
-          draggedTaskId = null;
-        });
-        
-        if (highlightedTaskId === task.id) {
-          taskItem.classList.add("week-task-highlighted");
+        } else {
+          el.classList.add("week-task-item", getPriorityClass(item.tarea_tipo), "sesion-estudio");
+
+          el.innerHTML = `
+            <strong>📚 ${item.esContinuacion ? "↳ " : ""}${item.title}</strong>
+            <span>${_fmtH(item.startHour)} - ${_fmtH(item.endHour)}</span>
+          `;
         }
 
-        if (highlightedTaskId !== null) {
-          setTimeout(() => {
-            highlightedTaskId = null;
-            renderCalendar();
-          }, 3000);
-        }
-        column.appendChild(taskItem);
+        el.style.top    = `${item.startHour * HOUR_HEIGHT}px`;
+        el.style.height = `${item.duration * HOUR_HEIGHT - 8}px`;
+        el.style.left   = `calc(${index} * (100% / ${total}) + 6px)`;
+        el.style.width  = `calc((100% / ${total}) - 12px)`;
+        el.style.right  = "auto";
+
+        column.appendChild(el);
       });
     });
-    //sesiones de estudio
-    const daySessions = sesiones.filter(s => s.fecha === dayDate);
-
-    daySessions.forEach(sesion => {
-      const startHour = sesion.hora_inicio;
-      const endHour   = sesion.hora_fin;
-      const duration  = endHour - startHour;
-
-      const block = document.createElement("div");
-      block.classList.add("week-task-item", "sesion-estudio");
-
-      //si tiene más de un tramo, mostrar los horarios de cada uno
-      let horariosStr;
-      if (sesion.tramos.length === 1) {
-        const t = sesion.tramos[0];
-        horariosStr = `${_fmtH(t.hora_inicio)} - ${_fmtH(t.hora_fin)}`;
-      } else {
-        horariosStr = sesion.tramos
-          .map(t => `${_fmtH(t.hora_inicio)}-${_fmtH(t.hora_fin)}`)
-          .join(" + ");
-      }
-
-      block.innerHTML = `
-        <strong>📚 ${sesion.tarea_nombre}</strong>
-        <span>${horariosStr}</span>
-      `;
-
-      block.style.top      = `${startHour * HOUR_HEIGHT}px`;
-      block.style.height   = `${duration * HOUR_HEIGHT - 8}px`;
-      block.style.left     = "6px";
-      block.style.width    = "calc(100% - 12px)";
-      block.style.opacity  = "0.85";
-
-      column.appendChild(block);
-    });  
   }
 }
 

@@ -247,6 +247,9 @@ def parse_intent(text) -> dict:
     if any(x in text for x in ["completar tarea", "completar tareas", "completar", "marcar tarea completada", "marcar tareas completadas", "finalizar tarea" ]):
         return {"type": "COMPLETE"}
 
+    if any(x in text for x in ["eliminar tarea", "eliminar tareas", "eliminar", "borrar tarea", "borrar tareas", "sacar tarea" ]):
+        return {"type": "DELETE"}
+
     return {"type": "UNKNOWN"}
 
 

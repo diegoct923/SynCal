@@ -11,19 +11,22 @@ def obtener_tareas_db(phone):
 
             #tareas principales
             cur.execute("""
-                SELECT t.id, t.nombre, t.deadline, t.tipo
+                SELECT t.id, t.nombre, t.deadline, t.tipo, t.status
                 FROM tarea t
                 JOIN usuario u ON u.tel = t.usuario_tel
                 WHERE u.tel = %s
             """, (phone,))
 
             tareas = []
-            for id, nombre, deadline, tipo in cur.fetchall():
+            for id, nombre, deadline, tipo, status in cur.fetchall():
                 tareas.append({
                     "id": id,
                     "date": deadline.strftime("%Y-%m-%d"),
                     "title": nombre,
-                    "priority": tipo       # EXAMEN | TAREA | PRACTICO
+                    "priority": tipo,       # EXAMEN | TAREA | PRACTICO
+                    "startHour": deadline.hour + deadline.minute / 60,
+                    "status": status,
+                    "duration": 1
                 })
 
             #subtareas / sesiones de estudio
@@ -33,19 +36,19 @@ def obtener_tareas_db(phone):
             cur.execute("""
                 SELECT
                     s.id,
-                    s.tarea_id,
-                    s.fecha,
+                    s.task_id,
+                    s.date,
                     s.hora_inicio,
                     s.hora_fin,
                     s.duracion,
                     s.sesion_grupo,
-                    s.estado,
+                    s.status,
                     t.nombre AS tarea_nombre,
                     t.tipo   AS tarea_tipo
                 FROM squema1.subtareas s
-                JOIN squema1.tarea t ON t.id = s.tarea_id
-                WHERE s.telefono = %s AND s.estado != 'CANCELADA'
-                ORDER BY s.fecha, s.sesion_grupo, s.hora_inicio
+                JOIN squema1.tarea t ON t.id = s.task_id
+                WHERE s.usuario_tel = %s AND s.status != 'CANCELADA'
+                ORDER BY s.date, s.sesion_grupo, s.hora_inicio
             """, (phone,))
 
             #agrupar tramos por (tarea_id, sesion_grupo) para reconstruir
@@ -60,12 +63,12 @@ def obtener_tareas_db(phone):
 
                 if key not in sesiones_map:
                     sesiones_map[key] = {
-                        "tarea_id":    tarea_id,
+                        "task_id":    tarea_id,
                         "tarea_nombre": nombre,
                         "tarea_tipo":  tipo,
-                        "fecha":       fecha.strftime("%Y-%m-%d"),
+                        "date":       fecha.strftime("%Y-%m-%d"),
                         "sesion_grupo": grupo,
-                        "estado":      estado,
+                        "status":      estado,
                         #el startHour y duration que usa el JS para posicionar
                         #se calculan a partir del primer y último tramo
                         "hora_inicio": hora_ini,
@@ -101,4 +104,6 @@ def calendar():
         return "Sesión inválida", 403
 
     tareas, sesiones = obtener_tareas_db(tel)
+    print(f"TAREAS: {tareas}")
+    print(f"SESIONES: {sesiones}")
     return render_template("calendario.html", tareas=tareas, sesiones=sesiones)

@@ -58,7 +58,11 @@ def get_tasks(tel):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea WHERE usuario_tel = %s ORDER BY deadline ASC",
+                """
+                SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea 
+                WHERE usuario_tel = %s 
+                ORDER BY deadline ASC
+                """,
                 (tel,)
             )
             rows = cur.fetchall()
@@ -104,7 +108,11 @@ def get_tasks_to_complete(tel):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea WHERE usuario_tel = %s AND status = 'PENDIENTE' ORDER BY deadline ASC",
+                """
+                SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea 
+                WHERE usuario_tel = %s AND status = 'PENDIENTE' 
+                ORDER BY deadline ASC
+                """,
                 (tel,)
             )
             rows = cur.fetchall()
@@ -118,7 +126,7 @@ def get_tasks_to_complete(tel):
     finally:
         conn.close()
    
-def completar_tarea(tel, task_id):
+def completar_tarea(task_id, usuario_tel):
     conn = connect_db()
 
     try:
@@ -129,7 +137,7 @@ def completar_tarea(tel, task_id):
                 SET status = 'COMPLETADA'
                 WHERE id = %s AND usuario_tel = %s
                 """,
-                (task_id, tel)
+                (task_id, usuario_tel,)
             )
 
             # check si se actualizó correctamente
@@ -147,7 +155,7 @@ def completar_tarea(tel, task_id):
         conn.close()
 
 
-def reagendar_tarea(task_id, deadline):
+def reagendar_tarea(task_id, deadline, usuario_tel):
     conn = connect_db()
 
     try:
@@ -156,9 +164,9 @@ def reagendar_tarea(task_id, deadline):
                 """
                 UPDATE squema1.tarea
                 SET deadline = %s
-                WHERE id = %s
+                WHERE id = %s AND usuario_tel = %s
                 """,
-                (deadline, task_id)
+                (deadline, task_id, usuario_tel,)
             )
 
             if cur.rowcount == 0:
@@ -168,6 +176,49 @@ def reagendar_tarea(task_id, deadline):
 
         conn.commit()
         return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+
+def borrar_tarea(task_id, usuario_tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM squema1.tarea 
+                WHERE id = %s AND usuario_tel = %s
+                """,
+                (task_id, usuario_tel,)
+            )
+
+            # check si se actualizó correctamente
+            if cur.rowcount == 0:
+                print("No se encontró la tarea")
+                conn.rollback()  
+                return False
+
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+def borrar_sesiones(task_id):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM squema1.subtareas WHERE task_id = %s",
+                (task_id,)
+            )
+        conn.commit()
     except Exception as e:
         conn.rollback()
         raise e

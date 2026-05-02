@@ -1,4 +1,4 @@
-from app.storage.task_store import completar_tarea, save_task
+from app.storage.task_store import completar_tarea, save_task, borrar_sesiones, reagendar_tarea, borrar_tarea
 from scheduler.scheduler import *
 
 
@@ -19,14 +19,38 @@ def create_user_task(phone, tipo, title, date):
 
    
 
-def complete_task(tel, task_id):
-    res = completar_tarea(tel, task_id) #true si completa, false si no encuentra tarea
+def complete_task(task_id, usuario_tel):
+    res = completar_tarea(task_id, usuario_tel) #true si completa, false si no encuentra tarea
     if not res:
-        res = {
-            "status" : "not_found"
-        }
-    res={
-        "status": "completed"
-    }
+        return {"status": "not_found"}
 
-    return res
+    return {"status": "completed"}
+
+
+
+def reagendar_user_task(task_id, deadline, usuario_tel):
+    # 1. Actualizar deadline en BD
+    print(f"[reagendar] task_id={task_id}, deadline={deadline}")
+    ok = reagendar_tarea(task_id, deadline, usuario_tel)
+    if not ok:
+        return {"status": "not_found"}
+
+    # 2. Borrar sesiones viejas
+    print(f"[reagendar] reagendar_tarea result: {ok}")
+    borrar_sesiones(task_id)
+
+    # 3. Replanificar con el nuevo deadline
+    print(f"[reagendar] sesiones borradas")
+    sesiones = planificar_tarea(task_id)
+
+    print(f"[reagendar] sesiones nuevas: {sesiones}")
+    return {"status": "reagendada", "sesiones": sesiones}
+
+
+
+def delete_task(task_id, usuario_tel):
+    res = borrar_tarea(task_id, usuario_tel)
+    if not res:
+        return {"status": "not_found"}
+    return {"status": "deleted"}
+

@@ -136,9 +136,21 @@ changeDateTaskBtn.addEventListener("click", () => {
       task.date = newDate;
       task.startHour = newHour;
       task.duration = newDuration;
+      fetch('/reagendar_tarea', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          task_id: taskId, 
+          deadline: `${newDate}T${String(newHour).padStart(2, "0")}:00:00`,
+          state: state
+        })
+      }).then(() => {
+        location.reload();
+      }).catch(err => console.error('Error al reagendar:', err));
 
-      renderCalendar();
       closeCustomModal();
+
+    
     }
   );
 });
@@ -194,6 +206,12 @@ completeTaskBtn.addEventListener("click", () => {
   } else {
     task.previousPriority = task.priority;
     task.priority = "completada";
+
+    fetch('/completar_tarea', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: selectedTaskId, state: state })
+    }).catch(err => console.error('Error al completar:', err));
   }
 
   renderCalendar();
@@ -214,12 +232,13 @@ deleteTaskBtn.addEventListener("click", () => {
       <p class="custom-modal-message">Esta acción no se puede deshacer.</p>
     `,
     () => {
-      const index = tasks.findIndex(t => t.id === taskIdToDelete);
-
-      if (index !== -1) {
-        tasks.splice(index, 1);
-        renderCalendar();
-      }
+      fetch('/borrar_tarea', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskIdToDelete, state: state })
+      }).then(() => {
+        location.reload();
+      }).catch(err => console.error('Error al borrar:', err));
 
       closeCustomModal();
     },

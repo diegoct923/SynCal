@@ -226,6 +226,8 @@
   }
 ];
 */
+const urlParams = new URLSearchParams(window.location.search);
+const state = urlParams.get('state')
 
 function getTasksForDate(dateString) {
   return tasks.filter(task => task.date === dateString);
@@ -239,7 +241,8 @@ function getTasksForWeek(weekDates) {
   return tasks.filter(task => weekStrings.includes(task.date));
 }
 
-function getPriorityClass(priority) {
+function getPriorityClass(priority, status) {
+  if(status == "COMPLETADA") return "prioridad-completada"
   switch (priority?.toUpperCase()) {
     case "EXAMEN":
       return "prioridad-alta";
@@ -262,7 +265,7 @@ function moveTaskToDate(taskId, newDate) {
   fetch('/reagendar_tarea', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task_id: taskId, deadline: newDate })
+    body: JSON.stringify({ task_id: taskId, deadline: newDate, state: state })
   }).catch(err => console.error('Error al reagendar:', err));
 
   renderCalendar();
@@ -278,7 +281,9 @@ function moveTaskToDateAndHour(taskId, newDate, newHour) {
   fetch('/reagendar_tarea', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task_id: taskId, deadline: `${newDate}T${String(newHour).padStart(2, "0")}:00:00`})
+    body: JSON.stringify({ task_id: taskId, deadline: `${newDate}T${String(newHour).padStart(2, "0")}:00:00`, state: state})
+  }).then(() => {
+    location.reload();
   }).catch(err => console.error('Error al reagendar:', err));
 
   renderCalendar();
@@ -323,7 +328,7 @@ function getSessionsForWeek(weekDates) {
   const weekStrings = weekDates.map(d =>
     formatDate(d.getFullYear(), d.getMonth(), d.getDate())
   );
-  return sesiones.filter(s => weekStrings.includes(s.fecha));
+  return sesiones.filter(s => weekStrings.includes(s.date));
 }
 
 function getSessionsForDate(dateString) {

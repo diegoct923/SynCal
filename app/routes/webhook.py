@@ -3,7 +3,7 @@ from flask import request
 from datetime import datetime, date
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
-from app.services.service import create_user_task, complete_task
+from app.services.service import create_user_task, complete_task, delete_task, reagendar_user_task
 from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete, reagendar_tarea
 from app.storage.user_store import create_user_if_not_exists
 from config.config import BASE_URL
@@ -36,8 +36,9 @@ def webhook():
  
     contexto = obtener_contexto(tel) #chequear contexto pendiente antes de parse intent
     
-    #Contexto Completar Tarea
 
+
+    #Contexto Completar Tarea
     if contexto == "id_tarea_completar":
         task_id = incoming_msg.strip() #type: ignore
         
@@ -45,9 +46,10 @@ def webhook():
             response.message("Por favor respondé con el número de la tarea.")
             return str(response)
 
-        result = complete_task(tel, int(task_id))  
+        result = complete_task(int(task_id), tel)  
 
         if result["status"] == "completed":
+            #eliminar tarea
             response.message("Tarea marcada como completada.")
         elif result["status"] == "not_found":
             response.message("No encontré esa tarea.")
@@ -57,8 +59,9 @@ def webhook():
         limpiar_contexto(tel)  #limpiar contexto al terminar conversación
         return str(response)
     
-    #Contexto Reagendar Tarea
 
+
+    #Contexto Reagendar Tarea
     if contexto == "id_tarea_mover":
         message= incoming_msg.strip() #type: ignore 
         parts = message.split(sep=",") #type: ignore
@@ -83,11 +86,49 @@ def webhook():
             response.message(f"Ocurrió un error con la fecha: {jason['error']}, {jason['message']}")
             return str(response)
 
-        reagendar_tarea(task_id, deadline)
+        result = reagendar_user_task(task_id, deadline, tel)
+        if result["status"] == "not_found":
+            response.message("No encontré esa tarea.")
+        else:
+            msg = "Tarea reagendada"
+            sesiones = result.get("sesiones", [])
+            if sesiones:
+                msg += "\n\nNuevas sesiones de estudio:"
+                for s in sesiones:
+                    if len(s["tramos"]) == 1:
+                        ini, fin = s["tramos"][0]
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {fmt(ini)} a {fmt(fin)}"
+                    else:
+                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {tramos_str}"
+            response.message(msg)
         limpiar_contexto(tel)
-        response.message("Tarea reagendada con éxito.")  #limpiar contexto al terminar conversación
         return str(response)
 
+
+
+    #Contexto eliminar tarea
+    if contexto == "id_tarea_eliminar":
+        task_id = incoming_msg.strip() #type: ignore
+
+        if not task_id.isdigit():
+            response.message("Por favor respondé con el número de la tarea.")
+            return str(response)
+
+        res = delete_task(task_id, tel)
+        if res["status"] == "deleted":
+            response.message("Tarea eliminada con exito.")
+        elif res["status"] == "not_found":
+            response.message("No se encontró la tarea.")
+        else:
+            response.message("Error al eliminar la tarea.")
+
+        limpiar_contexto(tel)  #limpiar contexto al terminar conversación
+        return str(response)
+    
+
+
+       
     intent = parse_intent(incoming_msg) #ADD, LIST, UNKNOWN
 
     
@@ -220,14 +261,14 @@ def webhook():
         if not tasks:
             response.message("No tenés tareas aún.")
         else:
-            msg = "¿Cuál tarea querés completar? Respondé con el número:\n"
+            msg = "¿Cuál tarea querés completar? Respondé con el número de la tarea:\n"
             for t in tasks:
                 msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
             
             guardar_contexto(tel, "id_tarea_completar")  # ← guardar que esperamos ID
             response.message(msg)
 
-    # Reagendar
+    #MOVE_TASK
 
     elif intent["type"] == "MOVE_TASK":
         tasks = get_tasks_to_complete(tel)
@@ -239,6 +280,19 @@ def webhook():
                 msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
             
             guardar_contexto(tel, "id_tarea_mover")  # ← guardar que esperamos ID
+            response.message(msg)
+
+    #DELETE
+    elif intent["type"] == "DELETE":
+        tasks = get_tasks_to_complete(tel)
+        if not tasks:
+            response.message("No tenés tareas aún.")
+        else:
+            msg = "¿Cuál tarea querés eliminar? Respondé con el número de la tarea:\n"
+            for t in tasks: 
+                msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
+            
+            guardar_contexto(tel, "id_tarea_eliminar")
             response.message(msg)
 
     # UNKNOWN

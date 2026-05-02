@@ -20,7 +20,7 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
 
   visibleTasks.forEach(task => {
     const taskItem = document.createElement("div");
-    taskItem.classList.add("task-item", getPriorityClass(task.priority));
+    taskItem.classList.add("task-item", getPriorityClass(task.priority, task.status));
     taskItem.textContent = task.title;
     taskItem.draggable = true;
     taskItem.dataset.taskId = task.id;

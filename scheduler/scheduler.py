@@ -34,16 +34,16 @@ def calcular_regimen(fecha_registro: date, deadline: date, tipo: str) -> tuple[l
         duracion = duracion_base
         fechas = _generar_fechas(fecha_registro, deadline, paso=1)
     elif 1 < dias_restantes < 7:
-        duracion = duracion_base * 1.5
+        duracion = duracion_base * 1.5 #type: ignore
         fechas = _generar_fechas(fecha_registro, deadline, paso=1)
     elif dias_restantes == 1:
-        duracion = duracion_base * 2.5
+        duracion = duracion_base * 2.5  #type: ignore
         fechas = _generar_fechas(fecha_registro, deadline, paso=1)
     else:
-        duracion = duracion_base * 2.5
+        duracion = duracion_base * 2.5  #type: ignore
         fechas = [fecha_registro]
- 
-    return fechas, duracion
+    
+    return fechas, duracion #type: ignore
  
  
 def _generar_fechas(desde: date, hasta: date, paso: int) -> list[date]:
@@ -78,25 +78,25 @@ def _cargar_bloques(telefono: str, fecha: date) -> tuple[list[tuple], list[tuple
                 """
                 SELECT hora_inicio, hora_fin
                 FROM squema1.horarios_bloqueados
-                WHERE (telefono IS NULL OR telefono = %s)
+                WHERE (usuario_tel IS NULL OR usuario_tel = %s)
                   AND (dia_semana IS NULL OR dia_semana = %s)
                 ORDER BY hora_inicio
                 """,
                 (telefono, dia_semana)
             )
-            bloques_blandos = cur.fetchall()
+            bloques_blandos = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
  
             # Bloques duros: subtareas ya agendadas ese día (de cualquier tarea).
             cur.execute(
                 """
                 SELECT hora_inicio, hora_fin
                 FROM squema1.subtareas
-                WHERE telefono = %s AND fecha = %s AND estado != 'CANCELADA'
+                WHERE usuario_tel = %s AND date = %s AND status != 'CANCELADA'
                 ORDER BY hora_inicio
                 """,
                 (telefono, fecha)
             )
-            bloques_duros = cur.fetchall()
+            bloques_duros = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
  
     finally:
         conn.close()
@@ -207,7 +207,7 @@ def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] 
  
         if tiempo_libre >= necesitamos:
             # Con este hueco alcanza, no necesitamos llegar al bloqueo
-            tramos.append((inicio_tramo, inicio_tramo + necesitamos))
+            tramos.append((inicio_tramo, inicio_tramo + necesitamos)) #type: ignore
             acumulado    = duracion
             inicio_tramo = None
             break
@@ -227,7 +227,7 @@ def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] 
             _iniciar_tramo(cursor)
             necesitamos = duracion - acumulado
             if 24.0 - cursor >= necesitamos:
-                tramos.append((inicio_tramo, inicio_tramo + necesitamos))
+                tramos.append((inicio_tramo, inicio_tramo + necesitamos)) #type: ignore
                 acumulado = duracion
  
     if acumulado < duracion:
@@ -250,7 +250,7 @@ def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
             cur.execute(
                 """
                 INSERT INTO squema1.subtareas
-                    (tarea_id, telefono, fecha, hora_inicio, hora_fin, duracion, estado, sesion_grupo)
+                    (task_id, usuario_tel, date, hora_inicio, hora_fin, duracion, status, sesion_grupo)
                 VALUES (%s, %s, %s, %s, %s, %s, 'PENDIENTE', %s)
                 """,
                 (tarea_id, telefono, fecha, inicio, fin, duracion_tramo, sesion_grupo)
@@ -344,7 +344,7 @@ def check_reminders():
 
     today = datetime.now().strftime("%d-%m")
 
-    tasks = get_tasks()
+    tasks = get_tasks() #type: ignore 
 
     for task in tasks:
         if task["date"] == today:

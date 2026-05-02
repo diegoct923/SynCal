@@ -374,8 +374,8 @@
 
 
 .sesion-estudio {
-  background-color: #e0f0ff;
-  border-left: 3px solid #3b82f6;
-  color: #1e3a5f;
+  border-left: 3px solid rgba(0,0,0,0.3);
+  opacity: 0.85;
   font-style: italic;
 }
+

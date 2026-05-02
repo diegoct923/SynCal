@@ -4,7 +4,7 @@
 
 ## Integrantes
 
-Martín Bentura, Santiago Martínez, Agustina Pereyra, Mateo Yavitz, Diego Cabrera
+Martín Bentura, Diego Cabrera, Santiago Martínez, Agustina Pereyra, Mateo Yavitz. 
 
 ---
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict tmcPGV8oC0y6lzTjjc3EgS8JaReeP23cMhHOSM90rtUlFmNubITPKqQt3wDViJ5
+\restrict terJREtK6omq9pI5EAV2j4dSIFa1OMhdnCra4GFi8c7op5drlLAk8NgGEhYyBJH
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 18.3
@@ -66,6 +66,43 @@ ALTER SEQUENCE squema1.grupo_id_seq OWNED BY squema1.grupo.id;
 
 
 --
+-- Name: horarios_bloqueados; Type: TABLE; Schema: squema1; Owner: postgres
+--
+
+CREATE TABLE squema1.horarios_bloqueados (
+    id integer NOT NULL,
+    usuario_tel character varying,
+    dia_semana integer,
+    hora_inicio numeric(4,1),
+    hora_fin numeric(4,1)
+);
+
+
+ALTER TABLE squema1.horarios_bloqueados OWNER TO postgres;
+
+--
+-- Name: horarios_bloqueados_id_seq; Type: SEQUENCE; Schema: squema1; Owner: postgres
+--
+
+CREATE SEQUENCE squema1.horarios_bloqueados_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE squema1.horarios_bloqueados_id_seq OWNER TO postgres;
+
+--
+-- Name: horarios_bloqueados_id_seq; Type: SEQUENCE OWNED BY; Schema: squema1; Owner: postgres
+--
+
+ALTER SEQUENCE squema1.horarios_bloqueados_id_seq OWNED BY squema1.horarios_bloqueados.id;
+
+
+--
 -- Name: sesion_conversacion; Type: TABLE; Schema: squema1; Owner: postgres
 --
 
@@ -90,6 +127,47 @@ CREATE TABLE squema1.sesiones (
 
 
 ALTER TABLE squema1.sesiones OWNER TO postgres;
+
+--
+-- Name: subtareas; Type: TABLE; Schema: squema1; Owner: postgres
+--
+
+CREATE TABLE squema1.subtareas (
+    id integer NOT NULL,
+    task_id integer NOT NULL,
+    usuario_tel character varying(20) NOT NULL,
+    date date NOT NULL,
+    hora_inicio numeric(4,1) NOT NULL,
+    hora_fin numeric(4,1) NOT NULL,
+    duracion numeric(4,1) NOT NULL,
+    status character varying(20) DEFAULT 'PENDIENTE'::character varying NOT NULL,
+    sesion_grupo integer
+);
+
+
+ALTER TABLE squema1.subtareas OWNER TO postgres;
+
+--
+-- Name: subtareas_id_seq; Type: SEQUENCE; Schema: squema1; Owner: postgres
+--
+
+CREATE SEQUENCE squema1.subtareas_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE squema1.subtareas_id_seq OWNER TO postgres;
+
+--
+-- Name: subtareas_id_seq; Type: SEQUENCE OWNED BY; Schema: squema1; Owner: postgres
+--
+
+ALTER SEQUENCE squema1.subtareas_id_seq OWNED BY squema1.subtareas.id;
+
 
 --
 -- Name: tarea; Type: TABLE; Schema: squema1; Owner: postgres
@@ -175,6 +253,20 @@ ALTER TABLE ONLY squema1.grupo ALTER COLUMN id SET DEFAULT nextval('squema1.grup
 
 
 --
+-- Name: horarios_bloqueados id; Type: DEFAULT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.horarios_bloqueados ALTER COLUMN id SET DEFAULT nextval('squema1.horarios_bloqueados_id_seq'::regclass);
+
+
+--
+-- Name: subtareas id; Type: DEFAULT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.subtareas ALTER COLUMN id SET DEFAULT nextval('squema1.subtareas_id_seq'::regclass);
+
+
+--
 -- Name: tarea id; Type: DEFAULT; Schema: squema1; Owner: postgres
 --
 
@@ -197,6 +289,14 @@ ALTER TABLE ONLY squema1.grupo
 
 
 --
+-- Name: horarios_bloqueados horarios_bloqueados_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.horarios_bloqueados
+    ADD CONSTRAINT horarios_bloqueados_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: sesion_conversacion sesion_conversacion_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
 --
 
@@ -210,6 +310,14 @@ ALTER TABLE ONLY squema1.sesion_conversacion
 
 ALTER TABLE ONLY squema1.sesiones
     ADD CONSTRAINT sesiones_pkey PRIMARY KEY (state);
+
+
+--
+-- Name: subtareas subtareas_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.subtareas
+    ADD CONSTRAINT subtareas_pkey PRIMARY KEY (id);
 
 
 --
@@ -245,11 +353,26 @@ ALTER TABLE ONLY squema1.usuario
 
 
 --
+-- Name: idx_subtareas_telefono_fecha; Type: INDEX; Schema: squema1; Owner: postgres
+--
+
+CREATE INDEX idx_subtareas_telefono_fecha ON squema1.subtareas USING btree (usuario_tel, date);
+
+
+--
 -- Name: sesion_conversacion sesion_conversacion_telefono_fkey; Type: FK CONSTRAINT; Schema: squema1; Owner: postgres
 --
 
 ALTER TABLE ONLY squema1.sesion_conversacion
     ADD CONSTRAINT sesion_conversacion_telefono_fkey FOREIGN KEY (telefono) REFERENCES squema1.usuario(tel);
+
+
+--
+-- Name: subtareas subtareas_task_id_fkey; Type: FK CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.subtareas
+    ADD CONSTRAINT subtareas_task_id_fkey FOREIGN KEY (task_id) REFERENCES squema1.tarea(id) ON DELETE CASCADE;
 
 
 --
@@ -280,5 +403,5 @@ ALTER TABLE ONLY squema1.usuario
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tmcPGV8oC0y6lzTjjc3EgS8JaReeP23cMhHOSM90rtUlFmNubITPKqQt3wDViJ5
+\unrestrict terJREtK6omq9pI5EAV2j4dSIFa1OMhdnCra4GFi8c7op5drlLAk8NgGEhYyBJH
 

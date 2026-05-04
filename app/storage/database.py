@@ -3,7 +3,7 @@ import psycopg2
 def connect_db(): 
     
     conn = psycopg2.connect(
-        host="localhost",
+        host="wicaldb.duckdns.org",
         database="syncal",
         user="postgres",
         password="asddsa",  
@@ -12,3 +12,4 @@ def connect_db():
     )
     
     return conn
+#186.50.89.1

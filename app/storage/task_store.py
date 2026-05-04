@@ -86,10 +86,10 @@ def get_tasks_day(tel):
                 SELECT id, nombre, deadline, tipo, usuario_tel, status 
                 FROM squema1.tarea 
                 WHERE usuario_tel = %s 
-                AND deadline::date = CURRENT_DATE
+                AND deadline::date = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Montevideo')::date
                 ORDER BY deadline ASC
                 """,
-                (tel,)
+                (tel,)          
             )
             rows = cur.fetchall()
             return [

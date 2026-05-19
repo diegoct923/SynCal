@@ -164,7 +164,7 @@ def extract_time(text: str):
     return None
 
 
-    #limpiar nombre de tarea 
+#limpiar nombre de tarea 
 
 def clean_task_title(text: str) -> str:
    # remover conectores comunes
@@ -249,6 +249,9 @@ def parse_intent(text) -> dict:
 
     if any(x in text for x in ["eliminar tarea", "eliminar tareas", "eliminar", "borrar tarea", "borrar tareas", "sacar tarea" ]):
         return {"type": "DELETE"}
+
+    if any(x in text for x in ["crear grupo", "armar grupo", "nuevo grupo", "formar grupo", "materializar grupo", "haya grupo" ]):
+        return {"type": "CREW"}
 
     return {"type": "UNKNOWN"}
 

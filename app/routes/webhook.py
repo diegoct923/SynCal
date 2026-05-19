@@ -66,7 +66,7 @@ def webhook():
         message= incoming_msg.strip() #type: ignore 
         parts = message.split(sep=",") #type: ignore
         task_id = parts[0]
-        date=extract_date(parts[1])
+        fecha=extract_date(parts[1])
         time=extract_time(parts[1])
 
         if not task_id.isdigit():
@@ -76,8 +76,8 @@ def webhook():
         if  date is None:
             response.message("Por favor incluya una fecha válida.")
             return str(response)
-        deadline = datetime.combine(date, time) if time else date
-        if deadline < date.today(): #si la fecha es anterior al día del registro, no se registra 
+        deadline = datetime.combine(fecha, time) if time else fecha #type: ignore 
+        if deadline.date() < date.today(): #si la fecha es anterior al día del registro, no se registra 
             jason={
             "ok": False,
             "error": "EXPIRED DATE",
@@ -95,12 +95,12 @@ def webhook():
             if sesiones:
                 msg += "\n\nNuevas sesiones de estudio:"
                 for s in sesiones:
-                    if len(s["tramos"]) == 1:
-                        ini, fin = s["tramos"][0]
-                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {fmt(ini)} a {fmt(fin)}"
+                    if len(s["tramos"]) == 1: #type: ignore
+                        ini, fin = s["tramos"][0] #type: ignore
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {fmt(ini)} a {fmt(fin)}" #type: ignore
                     else:
-                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
-                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {tramos_str}"
+                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"]) #type: ignore
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {tramos_str}" #type: ignore
             response.message(msg)
         limpiar_contexto(tel)
         return str(response)
@@ -150,14 +150,14 @@ def webhook():
             if sesiones:
                 msg += "\n\nSesiones de estudio agendadas:"
                 for s in sesiones:
-                    if len(s["tramos"]) == 1:
+                    if len(s["tramos"]) == 1: #type: ignore
                         # Sesión continua
-                        ini, fin = s["tramos"][0]
-                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {fmt(ini)} a {fmt(fin)}"
+                        ini, fin = s["tramos"][0] #type: ignore
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {fmt(ini)} a {fmt(fin)}" #type: ignore
                     else:
                         # Sesión partida en varios tramos
-                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
-                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {tramos_str}"
+                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"]) #type: ignore
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {tramos_str}" #type: ignore
             response.message(msg)   
 
         elif result["status"]=="duplicate":
@@ -173,16 +173,20 @@ def webhook():
     # LIST
     
     elif intent["type"] == "LIST":
+        print("Entra a list")
         tasks = get_tasks(tel)
-
+        print("sale get_task", tasks)
+    
         if not tasks:
             response.message("No tenés tareas aún")
+            print("no tasks")
         else:
             msg = "Tus tareas:\n"
             for t in tasks:
                 msg += f"- {t['tipo']} {t['title']} ({t['deadline']}) - {t['status']}\n"
 
             response.message(msg)
+            print("Formula respuesta: ", msg)
 
     # LIST_DAY
     elif intent["type"] == "LIST_DAY":
@@ -294,6 +298,10 @@ def webhook():
             
             guardar_contexto(tel, "id_tarea_eliminar")
             response.message(msg)
+    
+    #CREW
+    elif intent["type"] == "CREW":
+        return "on deck"
 
     # UNKNOWN
 

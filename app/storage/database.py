@@ -9,12 +9,11 @@ POSTGRES_PORT = os.getenv("POSTGRES_PORT")
 
 def connect_db(): 
     conn = psycopg2.connect(
-        host="wicaldb.duckdns.org",
+        host="localhost",
         database="syncal",
         user="postgres",
         password=POSTGRES_PASSWORD,
         port=POSTGRES_PORT,
         options="-c search_path=squema1"
     )
-
     return conn

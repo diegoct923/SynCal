@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict terJREtK6omq9pI5EAV2j4dSIFa1OMhdnCra4GFi8c7op5drlLAk8NgGEhYyBJH
+\restrict oWFxVF578Aiu16825pUWLUbJcAzNup2yDMCYmDVYTaVWEjRt6f5iHTNCfb7KmS7
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 18.3
@@ -217,7 +217,8 @@ CREATE TABLE squema1.usuario (
     tel character varying(20) NOT NULL,
     nombre character varying(100),
     contrasena character varying(100),
-    grupo_id integer
+    grupo_id integer,
+    google_id character varying(255)
 );
 
 
@@ -408,5 +409,5 @@ ADD COLUMN email VARCHAR(255) UNIQUE;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict terJREtK6omq9pI5EAV2j4dSIFa1OMhdnCra4GFi8c7op5drlLAk8NgGEhYyBJH
+\unrestrict oWFxVF578Aiu16825pUWLUbJcAzNup2yDMCYmDVYTaVWEjRt6f5iHTNCfb7KmS7
 

@@ -2,7 +2,9 @@ from flask import request
 from flask import render_template
 from app.storage.database import connect_db
 from app.storage.sesiones import obtener_telefono_por_state, limpiar_states_vencidos
-
+from app.routes.callback import google_callback
+from app.routes.login import login
+from flask import request, render_template, session, redirect
 
 def obtener_tareas_db(phone):
     conn = connect_db()
@@ -95,7 +97,8 @@ def obtener_tareas_db(phone):
         conn.close()
 
 
-def calendar():
+#def calendar():
+
     limpiar_states_vencidos()
     state = request.args.get("state")
     tel = obtener_telefono_por_state(state)
@@ -107,3 +110,38 @@ def calendar():
     print(f"TAREAS: {tareas}")
     print(f"SESIONES: {sesiones}")
     return render_template("calendario.html", tareas=tareas, sesiones=sesiones)
+
+from flask import request, session, redirect, render_template
+
+def calendar():
+    
+
+    tel = session.get("telefono")
+
+    if not tel:
+
+        limpiar_states_vencidos()
+
+        state = request.args.get("state")
+
+        if state:
+
+            tel = obtener_telefono_por_state(state)
+
+            if tel:
+
+                return redirect(f"/login?telefono={tel}")
+
+        return redirect("/login")
+
+    # YA LOGUEADO
+    # IGNORAR COMPLETAMENTE EL STATE
+
+    tareas, sesiones = obtener_tareas_db(tel)
+
+    return render_template(
+        "calendario.html",
+        tareas=tareas,
+        sesiones=sesiones
+    )
+

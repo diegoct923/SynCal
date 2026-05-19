@@ -3,7 +3,7 @@
 cd /d %~dp0
 
 echo Activando entorno...
-call venv\Scripts\activate
+call .venv\Scripts\activate
 
 echo Levantando servidor Flask...
 start cmd /k python main.py

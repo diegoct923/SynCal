@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+
+    <title>Login Google</title>
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+
+  <body>
+    <h1>Iniciar sesión con Google</h1>
+
+    <div
+      id="g_id_onload"
+      data-client_id="{{ TU_GOOGLE_CLIENT_ID }}"
+      data-callback="handleCredentialResponse"
+    ></div>
+
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <script>
+      // teléfono enviado desde Flask
+      const telefono = "{{ telefono }}";
+
+      async function handleCredentialResponse(response) {
+        const token = response.credential;
+
+        const res = await fetch("/routes/callback", {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            token: token,
+            telefono: telefono,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          window.location.href = "/calendar";
+        } else {
+          alert("Error autenticando con Google");
+        }
+      }
+    </script>
+  </body>
+</html>

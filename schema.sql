@@ -398,6 +398,11 @@ ALTER TABLE ONLY squema1.tarea
 ALTER TABLE ONLY squema1.usuario
     ADD CONSTRAINT usuario_grupo_fk FOREIGN KEY (grupo_id) REFERENCES squema1.grupo(id);
 
+--
+-- email: Vincula cada teléfono de usuario con un email único de Google OAuth
+--
+ALTER TABLE squema1.usuario
+ADD COLUMN email VARCHAR(255) UNIQUE;
 
 --
 -- PostgreSQL database dump complete

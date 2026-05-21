@@ -27,7 +27,7 @@ customModalSave.addEventListener("click", () => {
   }
 });
 
-// NUEVO
+
 function openConfirmBlockedSlotModal(onConfirm, onCancel, conflict) {
   openCustomModal(
     "Franja bloqueada",
@@ -58,7 +58,6 @@ function openConfirmBlockedSlotModal(onConfirm, onCancel, conflict) {
     closeCustomModal();
   };
 }
-// FIN NUEVO
 
 customModalCancel.addEventListener("click", closeCustomModal);
 customModalClose.addEventListener("click", closeCustomModal);

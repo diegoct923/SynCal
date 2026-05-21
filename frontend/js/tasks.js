@@ -1,255 +1,259 @@
-const tasks = [
-  {
-    id: 1,
-    date: "2026-05-01",
-    title: "Prueba",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 9,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 2,
-    date: "2026-05-05",
-    title: "Parcial Economía",
-    priority: "alta",
-    previousPriority: null,
-    startHour: 15,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 3,
-    date: "2026-05-02",
-    title: "Leer Teología",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 11,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 4,
-    date: "2026-05-03",
-    title: "Resumen Historia",
-    priority: "completada",
-    previousPriority: "media",
-    startHour: 10,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 5,
-    date: "2026-04-03",
-    title: "Ejercicios Álgebra",
-    priority: "media",
-    previousPriority: null,
-    startHour: 14,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 6,
-    date: "2026-04-04",
-    title: "Exposición GAL",
-    priority: "media",
-    previousPriority: null,
-    startHour: 9,
-    duration: 1,
-    isGroup: true
-  },
-  {
-    id: 7,
-    date: "2026-04-04",
-    title: "Repaso Economía",
-    priority: "alta",
-    previousPriority: null,
-    startHour: 16,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 8,
-    date: "2026-04-04",
-    title: "Ver clase grabada",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 19,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 9,
-    date: "2026-04-05",
-    title: "Trabajo Grupo",
-    priority: "media",
-    previousPriority: null,
-    startHour: 10,
-    duration: 2,
-    isGroup: true
-  },
-  {
-    id: 10,
-    date: "2026-04-05",
-    title: "Leer Cap 3",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 18,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 11,
-    date: "2026-04-08",
-    title: "Entrega AM2",
-    priority: "alta",
-    previousPriority: null,
-    startHour: 8,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 12,
-    date: "2026-04-08",
-    title: "Practicar ejercicios",
-    priority: "media",
-    previousPriority: null,
-    startHour: 13,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 13,
-    date: "2026-04-10",
-    title: "Revisión proyecto",
-    priority: "media",
-    previousPriority: null,
-    startHour: 17,
-    duration: 1,
-    isGroup: true
-  },
-  {
-    id: 14,
-    date: "2026-04-12",
-    title: "Simulacro parcial",
-    priority: "alta",
-    previousPriority: null,
-    startHour: 9,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 15,
-    date: "2026-04-12",
-    title: "Repaso apuntes",
-    priority: "media",
-    previousPriority: null,
-    startHour: 13,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 16,
-    date: "2026-04-12",
-    title: "Organizar notas",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 19,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 17,
-    date: "2026-04-17",
-    title: "Examen Infra",
-    priority: "alta",
-    previousPriority: null,
-    startHour: 8,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 18,
-    date: "2026-04-17",
-    title: "Repaso final",
-    priority: "media",
-    previousPriority: null,
-    startHour: 14,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 19,
-    date: "2026-04-20",
-    title: "Trabajo Grupo",
-    priority: "media",
-    previousPriority: null,
-    startHour: 11,
-    duration: 2,
-    isGroup: true
-  },
-  {
-    id: 20,
-    date: "2026-04-20",
-    title: "Reunión equipo",
-    priority: "media",
-    previousPriority: null,
-    startHour: 16,
-    duration: 1,
-    isGroup: true
-  },
-  {
-    id: 21,
-    date: "2026-04-20",
-    title: "Ajustes finales",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 20,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 22,
-    date: "2026-04-30",
-    title: "Examen BD",
-    priority: "alta",
-    previousPriority: null,
-    startHour: 9,
-    duration: 2,
-    isGroup: false
-  },
-  {
-    id: 23,
-    date: "2026-04-30",
-    title: "Entrega Redes",
-    priority: "media",
-    previousPriority: null,
-    startHour: 13,
-    duration: 1,
-    isGroup: true
-  },
-  {
-    id: 24,
-    date: "2026-04-30",
-    title: "Repaso consultas",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 16,
-    duration: 1,
-    isGroup: false
-  },
-  {
-    id: 25,
-    date: "2026-04-30",
-    title: "Organizar apuntes",
-    priority: "baja",
-    previousPriority: null,
-    startHour: 19,
-    duration: 1,
-    isGroup: false
-  }
-];
+// const tasks = [
+//   {
+//     id: 1,
+//     date: "2026-05-01",
+//     title: "Prueba",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 9,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 2,
+//     date: "2026-05-05",
+//     title: "Parcial Economía",
+//     priority: "alta",
+//     previousPriority: null,
+//     startHour: 15,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 3,
+//     date: "2026-05-02",
+//     title: "Leer Teología",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 11,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 4,
+//     date: "2026-05-03",
+//     title: "Resumen Historia",
+//     priority: "completada",
+//     previousPriority: "media",
+//     startHour: 10,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 5,
+//     date: "2026-04-03",
+//     title: "Ejercicios Álgebra",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 14,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 6,
+//     date: "2026-04-04",
+//     title: "Exposición GAL",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 9,
+//     duration: 1,
+//     isGroup: true
+//   },
+//   {
+//     id: 7,
+//     date: "2026-04-04",
+//     title: "Repaso Economía",
+//     priority: "alta",
+//     previousPriority: null,
+//     startHour: 16,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 8,
+//     date: "2026-04-04",
+//     title: "Ver clase grabada",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 19,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 9,
+//     date: "2026-04-05",
+//     title: "Trabajo Grupo",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 10,
+//     duration: 2,
+//     isGroup: true
+//   },
+//   {
+//     id: 10,
+//     date: "2026-04-05",
+//     title: "Leer Cap 3",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 18,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 11,
+//     date: "2026-04-08",
+//     title: "Entrega AM2",
+//     priority: "alta",
+//     previousPriority: null,
+//     startHour: 8,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 12,
+//     date: "2026-04-08",
+//     title: "Practicar ejercicios",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 13,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 13,
+//     date: "2026-04-10",
+//     title: "Revisión proyecto",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 17,
+//     duration: 1,
+//     isGroup: true
+//   },
+//   {
+//     id: 14,
+//     date: "2026-04-12",
+//     title: "Simulacro parcial",
+//     priority: "alta",
+//     previousPriority: null,
+//     startHour: 9,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 15,
+//     date: "2026-04-12",
+//     title: "Repaso apuntes",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 13,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 16,
+//     date: "2026-04-12",
+//     title: "Organizar notas",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 19,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 17,
+//     date: "2026-04-17",
+//     title: "Examen Infra",
+//     priority: "alta",
+//     previousPriority: null,
+//     startHour: 8,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 18,
+//     date: "2026-04-17",
+//     title: "Repaso final",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 14,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 19,
+//     date: "2026-04-20",
+//     title: "Trabajo Grupo",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 11,
+//     duration: 2,
+//     isGroup: true
+//   },
+//   {
+//     id: 20,
+//     date: "2026-04-20",
+//     title: "Reunión equipo",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 16,
+//     duration: 1,
+//     isGroup: true
+//   },
+//   {
+//     id: 21,
+//     date: "2026-04-20",
+//     title: "Ajustes finales",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 20,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 22,
+//     date: "2026-04-30",
+//     title: "Examen BD",
+//     priority: "alta",
+//     previousPriority: null,
+//     startHour: 9,
+//     duration: 2,
+//     isGroup: false
+//   },
+//   {
+//     id: 23,
+//     date: "2026-04-30",
+//     title: "Entrega Redes",
+//     priority: "media",
+//     previousPriority: null,
+//     startHour: 13,
+//     duration: 1,
+//     isGroup: true
+//   },
+//   {
+//     id: 24,
+//     date: "2026-04-30",
+//     title: "Repaso consultas",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 16,
+//     duration: 1,
+//     isGroup: false
+//   },
+//   {
+//     id: 25,
+//     date: "2026-04-30",
+//     title: "Organizar apuntes",
+//     priority: "baja",
+//     previousPriority: null,
+//     startHour: 19,
+//     duration: 1,
+//     isGroup: false
+//   }
+// ];
+
+async function loadTasksFromBackend() {
+  // FETCH: traer todas las tareas desde Python (/tasks)
+}
 
 function getTasksForDate(dateString) {
   return tasks.filter(task => task.date === dateString);
@@ -279,6 +283,9 @@ function getPriorityClass(priority) {
 }
 
 function moveTaskToDate(taskId, newDate) {
+
+  // FETCH: PUT → actualizar fecha de la tarea
+
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
 
@@ -286,20 +293,10 @@ function moveTaskToDate(taskId, newDate) {
   renderCalendar();
 }
 
-// ELIMINAR
-// function moveTaskToDateAndHour(taskId, newDate, newHour) {
-//   const task = tasks.find(t => t.id === taskId);
-//   if (!task) return;
-
-//   task.date = newDate;
-//   task.startHour = newHour;
-
-//   renderCalendar();
-// }
-// FIN ELIMINAR
-
-// NUEVO
 function moveTaskToDateAndHour(taskId, newDate, newHour, force = false) {
+
+    // FETCH: PUT → actualizar fecha + hora
+
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
 
@@ -332,7 +329,7 @@ function moveTaskToDateAndHour(taskId, newDate, newHour, force = false) {
 
   renderCalendar();
 }
-// FIN NUEVO
+
 
 function getNextTaskId() {
   if (tasks.length === 0) return 1;
@@ -352,25 +349,10 @@ function getDurationByPriority(priority) {
   }
 }
 
-// ELIMINAR
-// function createTask(title, date, startHour, priority) {
-//   const newTask = {
-//     id: getNextTaskId(),
-//     date: date,
-//     title: title,
-//     priority: priority,
-//     previousPriority: null,
-//     startHour: Number(startHour),
-//     duration: getDurationByPriority(priority)
-//   };
-
-//   tasks.push(newTask);
-//   renderCalendar();
-// }
-// FIN ELIMINAR
-
-//NUEVO
 function createTask(title, date, startHour, priority, isGroup = false, force = false) {
+
+    // FETCH: POST → crear nueva tarea
+
   const duration = getDurationByPriority(priority);
   const dayIndex = getDayIndexFromDate(date);
 
@@ -439,6 +421,9 @@ function getNextBlockedSlotId() {
 }
 
 function createBlockedSlot(day, startHour, duration, title) {
+
+  // FETCH: POST → crear franja bloqueada
+
   blockedTimeSlots.push({
     id: getNextBlockedSlotId(),
     title: title || "Bloqueado",
@@ -452,6 +437,9 @@ function createBlockedSlot(day, startHour, duration, title) {
 }
 
 function deleteBlockedSlot(slotId) {
+
+  // FETCH: DELETE → eliminar franja bloqueada, no definido aun
+
   const index = blockedTimeSlots.findIndex(slot => slot.id === slotId);
 
   if (index !== -1) {

@@ -40,7 +40,6 @@ const weekBoardScroll = document.getElementById("weekBoardScroll");
 const weekDaysHeaderScroll = document.getElementById("weekDaysHeaderScroll");
 const weekHoursScroll = document.getElementById("weekHoursScroll");
 
-// NUEVO
 const taskMenuTitle = document.getElementById("taskMenuTitle");
 const taskMenuCloseBtn = document.getElementById("taskMenuCloseBtn");
 
@@ -55,18 +54,12 @@ const applyMonthYearBtn = document.getElementById("applyMonthYearBtn");
 
 const manageBlocksBtn = document.getElementById("manageBlocksBtn");
 const toggleGroupTaskBtn = document.getElementById("toggleGroupTaskBtn");
-// FIN NUEVO
+
 
 let highlightedTaskId = null;
 
-//ELIMINAR
-// let currentDate = new Date(2026, 3, 1); // Abril 2026
-//FIN ELIMINAR
-
-//NUEVO
 const today = new Date();
 let currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
-//FIN NUEVO
 
 let currentView = "month";
 
@@ -175,7 +168,6 @@ summaryCloseBtn.addEventListener("click", () => {
   weekSummaryPanel.classList.add("hidden");
 });
 
-// NUEVO
 calendarOptionsBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   calendarOptionsPanel.classList.toggle("hidden");
@@ -241,6 +233,5 @@ document.addEventListener("click", () => {
 });
 
 loadYearOptions();
-// FIN NUEVO
 
 renderCalendar();

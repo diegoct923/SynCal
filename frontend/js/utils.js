@@ -3,14 +3,12 @@ const monthNames = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
-// NUEVO
 function isTouchDevice() {
   return (
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0
   );
 }
-// FIN NUEVO
 
 function addTaskInteractionHandlers(taskItem, taskId) {
   const openMenu = (x, y) => {
@@ -93,63 +91,59 @@ function autoScrollWhileDragging(e) {
   }
 }
 
-// FIN NUEVO
 
-function addTaskInteractionHandlers(taskItem, taskId) {
-  const openMenu = (x, y) => {
-    openTaskMenu(taskId, x, y);
-  };
+// function addTaskInteractionHandlers(taskItem, taskId) {
+//   const openMenu = (x, y) => {
+//     openTaskMenu(taskId, x, y);
+//   };
 
-  // Desktop: solo click derecho abre menú
-  taskItem.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    openMenu(e.clientX, e.clientY);
-  });
+//   taskItem.addEventListener("contextmenu", (e) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     openMenu(e.clientX, e.clientY);
+//   });
 
-  // Táctil: mantener apretado abre menú
-  if (isTouchDevice()) {
-    let pressTimer = null;
-    let startX = 0;
-    let startY = 0;
-    let didMove = false;
+//   if (isTouchDevice()) {
+//     let pressTimer = null;
+//     let startX = 0;
+//     let startY = 0;
+//     let didMove = false;
 
-    taskItem.addEventListener("touchstart", (e) => {
-      const touch = e.touches[0];
+//     taskItem.addEventListener("touchstart", (e) => {
+//       const touch = e.touches[0];
 
-      startX = touch.clientX;
-      startY = touch.clientY;
-      didMove = false;
+//       startX = touch.clientX;
+//       startY = touch.clientY;
+//       didMove = false;
 
-      pressTimer = setTimeout(() => {
-        if (!didMove) {
-          openMenu(touch.clientX, touch.clientY);
-        }
-      }, 700);
-    });
+//       pressTimer = setTimeout(() => {
+//         if (!didMove) {
+//           openMenu(touch.clientX, touch.clientY);
+//         }
+//       }, 700);
+//     });
 
-    taskItem.addEventListener("touchmove", (e) => {
-      const touch = e.touches[0];
+//     taskItem.addEventListener("touchmove", (e) => {
+//       const touch = e.touches[0];
 
-      const distanceX = Math.abs(touch.clientX - startX);
-      const distanceY = Math.abs(touch.clientY - startY);
+//       const distanceX = Math.abs(touch.clientX - startX);
+//       const distanceY = Math.abs(touch.clientY - startY);
 
-      if (distanceX > 10 || distanceY > 10) {
-        didMove = true;
-        clearTimeout(pressTimer);
-      }
-    });
+//       if (distanceX > 10 || distanceY > 10) {
+//         didMove = true;
+//         clearTimeout(pressTimer);
+//       }
+//     });
 
-    taskItem.addEventListener("touchend", () => {
-      clearTimeout(pressTimer);
-    });
+//     taskItem.addEventListener("touchend", () => {
+//       clearTimeout(pressTimer);
+//     });
 
-    taskItem.addEventListener("touchcancel", () => {
-      clearTimeout(pressTimer);
-    });
-  }
-}
-// FIN NUEVO
+//     taskItem.addEventListener("touchcancel", () => {
+//       clearTimeout(pressTimer);
+//     });
+//   }
+// }
 
 function formatDate(year, month, day) {
   const mm = String(month + 1).padStart(2, "0");
@@ -195,7 +189,6 @@ function getDayNameShort(index) {
   return names[index];
 }
 
-//NUEVO
 function isToday(dateString) {
   const today = new Date();
 
@@ -207,4 +200,3 @@ function isToday(dateString) {
 
   return dateString === todayString;
 }
-//FIN NUEVO

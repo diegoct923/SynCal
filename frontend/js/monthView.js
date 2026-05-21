@@ -3,11 +3,10 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
   day.classList.add("calendar-day");
   day.dataset.date = fullDate;
 
-  // AGREGAR
   if (isToday(fullDate)) {
     day.classList.add("today");
   }
-  // FIN AGREGAR
+
 
   if (isOtherMonth) {
     day.classList.add("other-month");
@@ -27,10 +26,7 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
   visibleTasks.forEach(task => {
     const taskItem = document.createElement("div");
     taskItem.classList.add("task-item", getPriorityClass(task.priority));
-    //ELIMINAR
-    // taskItem.textContent = task.title;
-    //FIN ELIMINAR
-    //NUEVO
+
     taskItem.innerHTML = `
       ${task.isGroup ? '<span class="group-task-icon">👥</span>' : ""}
       <span>${task.title}</span>
@@ -61,7 +57,7 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
       );
     });
 
-    // NUEVO
+
     if (isTouchDevice()) {
       taskItem.addEventListener("touchend", (e) => {
         e.preventDefault();
@@ -76,7 +72,6 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
         );
       }, { passive: false });
     }
-    //FIN NUEVO
 
     taskList.appendChild(taskItem);
   });

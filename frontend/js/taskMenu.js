@@ -1,50 +1,3 @@
-// ELIMINAR
-// function openTaskMenu(taskId, x, y) {
-//   const task = tasks.find(t => t.id === taskId);
-//   if (!task) return;
-
-//   selectedTaskId = taskId;
-
-//   if (task.priority === "completada") {
-//     completeTaskBtn.textContent = "Marcar como no completada";
-//   } else {
-//     completeTaskBtn.textContent = "Marcar como completada";
-//   }
-
-//   if (currentView === "week") {
-//     viewTaskWeekBtn.classList.add("hidden");
-//   } else {
-//     viewTaskWeekBtn.classList.remove("hidden");
-//   }
-
-//   taskMenu.classList.remove("hidden");
-
-//   const menuWidth = taskMenu.offsetWidth;
-//   const menuHeight = taskMenu.offsetHeight;
-
-//   const windowWidth = window.innerWidth;
-//   const windowHeight = window.innerHeight;
-
-//   let posX = x;
-//   let posY = y;
-
-//   if (x + menuWidth > windowWidth) {
-//     posX = windowWidth - menuWidth - 10;
-//   }
-
-//   if (y + menuHeight > windowHeight) {
-//     posY = windowHeight - menuHeight - 10;
-//   }
-
-//   if (posX < 10) posX = 10;
-//   if (posY < 10) posY = 10;
-
-//     taskMenu.style.left = `${posX}px`;
-//     taskMenu.style.top = `${posY}px`;
-// }
-// FIN ELIMINAR
-
-// NUEVO
 function openTaskMenu(taskId, x, y) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
@@ -140,16 +93,8 @@ document.addEventListener("click", (e) => {
     closeTaskMenu();
   }
 });
-// FIN NUEVO
 
-// ELIMINAR
-// function closeTaskMenu() {
-//   taskMenu.classList.add("hidden");
-//   selectedTaskId = null;
-// }
-// FIN ELIMINAR
 
-//REEMPLAZAR
 editTaskBtn.addEventListener("click", (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -190,6 +135,8 @@ editTaskBtn.addEventListener("click", (e) => {
 
       task.title = value;
       task.isGroup = typeSelect.value === "group";
+
+      // FETCH: actualizar nombre y tipo de tarea
 
       renderCalendar();
       closeCustomModal();
@@ -256,6 +203,8 @@ changeDateTaskBtn.addEventListener("click", (e) => {
       task.startHour = newHour;
       task.duration = newDuration;
 
+      // FETCH: actualizar fecha, hora y duración
+
       renderCalendar();
       closeCustomModal();
     }
@@ -297,6 +246,9 @@ changePriorityTaskBtn.addEventListener("click", (e) => {
       }
 
       task.priority = value;
+
+      // FETCH: actualizar prioridad
+
       renderCalendar();
       closeCustomModal();
     }
@@ -318,6 +270,8 @@ completeTaskBtn.addEventListener("click", (e) => {
     task.previousPriority = task.priority;
     task.priority = "completada";
   }
+
+  // FETCH: actualizar estado completada o no
 
   renderCalendar();
   closeTaskMenu();
@@ -341,6 +295,7 @@ deleteTaskBtn.addEventListener("click", (e) => {
 
       if (index !== -1) {
         tasks.splice(index, 1);
+        // FETCH: DELETE → eliminar tarea
         renderCalendar();
       }
 
@@ -350,14 +305,6 @@ deleteTaskBtn.addEventListener("click", (e) => {
     true
   );
 });
-
-// ELIMINAR
-// document.addEventListener("click", (e) => {
-//   if (!taskMenu.contains(e.target)) {
-//     closeTaskMenu();
-//   }
-// });
-// FIN ELIMINAR
 
 viewTaskWeekBtn.addEventListener("click", (e) => {
   e.preventDefault();
@@ -390,7 +337,8 @@ toggleGroupTaskBtn.addEventListener("click", (e) => {
 
   task.isGroup = !task.isGroup;
 
+  // FETCH: actualizar tipo grupal/individual
+
   renderCalendar();
   closeTaskMenu();
 });
-//FIN REEMPLAZAR

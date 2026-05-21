@@ -34,11 +34,9 @@ function createWeekTimeSlots(weekDates) {
     column.classList.add("week-day-column");
     column.dataset.date = fullDate;
 
-      // AGREGAR
       if (isToday(fullDate)) {
         column.classList.add("today-column");
       }
-      // FIN AGREGAR
 
     if (highlightedDate === fullDate) {
       column.classList.add("week-day-highlighted");
@@ -155,14 +153,6 @@ function renderWeeklyTasks(weekDates) {
 
         taskItem.draggable = true;
 
-        //ELIMINAR
-        // taskItem.innerHTML = `
-        //   <strong>${task.title}</strong>
-        //   <span>${String(task.startHour).padStart(2, "0")}:00 - ${String(task.endHour).padStart(2, "0")}:00</span>
-        // `;
-        //FIN ELIMINAR
-
-        //NUEVO
         taskItem.innerHTML = `
            <strong>
               ${task.isGroup ? '<span class="group-task-icon">👥</span>' : ""}
@@ -174,15 +164,12 @@ function renderWeeklyTasks(weekDates) {
               </div>
             </strong>
         `;
-        //FIN NUEVO
         
       
         taskItem.style.top = `${task.startHour * HOUR_HEIGHT}px`;
-        //REEMPLAZAR
         taskItem.style.height = `${task.duration * HOUR_HEIGHT}px`;
         taskItem.style.left = `calc(${index} * (100% / ${total}))`;
         taskItem.style.width = `calc(100% / ${total})`;
-        //FIN REEMPLAZAR
         taskItem.style.right = "auto";
 
         taskItem.addEventListener("contextmenu", (e) => {
@@ -196,7 +183,6 @@ function renderWeeklyTasks(weekDates) {
           );
         });
 
-        // NUEVO
         if (isTouchDevice()) {
           taskItem.addEventListener("touchend", (e) => {
             e.preventDefault();
@@ -211,7 +197,6 @@ function renderWeeklyTasks(weekDates) {
             );
           }, { passive: false });
         }
-        //FIN NUEVO
         
 
         taskItem.addEventListener("dragstart", () => {
@@ -299,9 +284,7 @@ function renderWeekView() {
   renderWeekHeader(weekDates);
   renderWeekHours();
   createWeekTimeSlots(weekDates);
-  //NUEVO
   renderBlockedTimeSlots();
-  //FIN NUEVO
   renderWeeklyTasks(weekDates);
   renderWeeklySummary(weekDates);
 }
@@ -317,7 +300,6 @@ function renderWeekHours() {
   }
 }
 
-//NUEVO
 function renderBlockedTimeSlots() {
   const columns = document.querySelectorAll(".week-day-column");
 
@@ -328,8 +310,6 @@ function renderBlockedTimeSlots() {
       const startHour = Number(block.startHour);
       const duration = Number(block.duration);
       const endHour = startHour + duration;
-
-      // Parte normal dentro del mismo día
       const visibleEndHour = Math.min(endHour, 24);
       const visibleDuration = visibleEndHour - startHour;
 
@@ -337,7 +317,6 @@ function renderBlockedTimeSlots() {
         createBlockedElement(column, block, startHour, visibleDuration);
       }
 
-      // Si pasa de las 24, dibujar sobrante al día siguiente
       if (endHour > 24) {
         const nextDayIndex = (dayIndex + 1) % 7;
         const nextColumn = columns[nextDayIndex];
@@ -367,5 +346,3 @@ function createBlockedElement(column, block, startHour, duration) {
 
   column.appendChild(blockElement);
 }
-
-//FIN NUEVO

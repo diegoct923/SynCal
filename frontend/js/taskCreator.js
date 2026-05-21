@@ -1,5 +1,4 @@
 function openCreateTaskModal(defaultDate, defaultHour = 9) {
-  //REEMPLAZAR
   openCustomModal(
     "Crear tarea",
     `
@@ -27,17 +26,15 @@ function openCreateTaskModal(defaultDate, defaultHour = 9) {
 
       <div class="custom-modal-message" id="newTaskError"></div>
     `,
-    //FIN REEMPLAZAR
+
     () => {
       const titleInput = document.getElementById("newTaskTitle");
       const dateInput = document.getElementById("newTaskDate");
       const hourInput = document.getElementById("newTaskHour");
       const priorityInput = document.getElementById("newTaskPriority");
       const error = document.getElementById("newTaskError");
-      // NUEVO
       const typeInput = document.getElementById("newTaskType");
       const isGroup = typeInput.value === "group";
-      // FIN NUEVO
       const title = titleInput.value.trim();
       const date = dateInput.value;
       const hour = Number(hourInput.value);
@@ -65,18 +62,11 @@ function openCreateTaskModal(defaultDate, defaultHour = 9) {
         return;
       }
 
-      // ELIMINAR
-      //createTask(title, date, hour, priority);
-      // closeCustomModal();
-      // FIN ELIMINAR
-
-      //NUEVO
       const wasCreated = createTask(title, date, hour, priority, isGroup);
 
       if (wasCreated) {
         closeCustomModal();
       }
-      //FIN NUEVO
     },
     "Crear tarea"
   );

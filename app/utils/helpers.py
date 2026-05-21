@@ -8,3 +8,4 @@ def fmt(hora: float) -> str:
     h = int(hora)
     m = int(round((hora - h) * 60))
     return f"{h:02d}:{m:02d}"
+

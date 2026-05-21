@@ -59,15 +59,25 @@ def get_tasks(tel):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea 
-                WHERE usuario_tel = %s 
+                SELECT id, nombre, deadline, tipo, usuario_tel, status, es_grupal, grupo_id
+                FROM squema1.tarea
+                WHERE usuario_tel = %s
+                
+                UNION
+                
+                SELECT t.id, t.nombre, t.deadline, t.tipo, t.usuario_tel, t.status, t.es_grupal, t.grupo_id
+                FROM squema1.tarea t
+                JOIN squema1.grupo_usuario gu ON gu.grupo_id = t.grupo_id
+                WHERE gu.usuario_tel = %s AND t.es_grupal = TRUE
+
                 ORDER BY deadline ASC
                 """,
-                (tel,)
+                (tel, tel)
             )
             rows = cur.fetchall()
             return [
-                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4], "status": r[5]}
+                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], 
+                "phone": r[4], "status": r[5], "es_grupal": r[6], "grupo_id": r[7]}
                 for r in rows
             ]
     except Exception as e:
@@ -83,17 +93,27 @@ def get_tasks_day(tel):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, nombre, deadline, tipo, usuario_tel, status 
-                FROM squema1.tarea 
-                WHERE usuario_tel = %s 
+                SELECT id, nombre, deadline, tipo, usuario_tel, status, es_grupal, grupo_id
+                FROM squema1.tarea
+                WHERE usuario_tel = %s
                 AND deadline::date = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Montevideo')::date
+
+                UNION
+
+                SELECT t.id, t.nombre, t.deadline, t.tipo, t.usuario_tel, t.status, t.es_grupal, t.grupo_id
+                FROM squema1.tarea t
+                JOIN squema1.grupo_usuario gu ON gu.grupo_id = t.grupo_id
+                WHERE gu.usuario_tel = %s AND t.es_grupal = TRUE
+                AND t.deadline::date = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Montevideo')::date
+
                 ORDER BY deadline ASC
                 """,
-                (tel,)          
+                (tel, tel)
             )
             rows = cur.fetchall()
             return [
-                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4], "status": r[5]}
+                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3],
+                 "phone": r[4], "status": r[5], "es_grupal": r[6], "grupo_id": r[7]}
                 for r in rows
             ]
     except Exception as e:
@@ -109,15 +129,25 @@ def get_tasks_to_complete(tel):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, nombre, deadline, tipo, usuario_tel, status  FROM squema1.tarea 
-                WHERE usuario_tel = %s AND status = 'PENDIENTE' 
+                SELECT id, nombre, deadline, tipo, usuario_tel, status, es_grupal, grupo_id
+                FROM squema1.tarea
+                WHERE usuario_tel = %s AND status = 'PENDIENTE'
+
+                UNION
+
+                SELECT t.id, t.nombre, t.deadline, t.tipo, t.usuario_tel, t.status, t.es_grupal, t.grupo_id
+                FROM squema1.tarea t
+                JOIN squema1.grupo_usuario gu ON gu.grupo_id = t.grupo_id
+                WHERE gu.usuario_tel = %s AND t.es_grupal = TRUE AND t.status = 'PENDIENTE'
+
                 ORDER BY deadline ASC
                 """,
-                (tel,)
+                (tel, tel)
             )
             rows = cur.fetchall()
             return [
-                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], "phone": r[4], "status": r[5]}
+                {"id": r[0], "title": r[1], "deadline": r[2], "tipo": r[3], 
+                 "phone": r[4], "status": r[5], "es_grupal": r[6], "grupo_id": r[7]}
                 for r in rows
             ]
     except Exception as e:

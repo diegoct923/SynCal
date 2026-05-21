@@ -25,13 +25,15 @@ def get_user(phone):
 
 def create_user_if_not_exists(phone):
     users = load_users()
+    es_nuevo = False
     
     if phone not in users:
         users[phone] = {
         }
         save_users(users)
-
-
+        es_nuevo = True
+        
+        
     conn = connect_db()
     try:
         with conn.cursor() as cur:
@@ -48,7 +50,7 @@ def create_user_if_not_exists(phone):
                 cur.execute("SELECT id FROM squema1.usuario WHERE tel = %s", (phone,))
                 row = cur.fetchone()
             conn.commit()
-            return row[0] #type: ignore
+            return {"tel" : row[0], "es_nuevo" : es_nuevo} #type: ignore
     except Exception as e:
         conn.rollback()
         raise e

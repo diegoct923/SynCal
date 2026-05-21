@@ -5,6 +5,7 @@ from app.storage.sesiones import obtener_telefono_por_state, limpiar_states_venc
 from app.routes.callback import google_callback
 from app.routes.login import login
 from flask import request, render_template, session, redirect
+from config.config import BASE_URL
 
 def obtener_tareas_db(phone):
     conn = connect_db()
@@ -97,8 +98,10 @@ def obtener_tareas_db(phone):
         conn.close()
 
 
-#def calendar():
 
+
+
+def calendar():
     limpiar_states_vencidos()
     state = request.args.get("state")
     tel = obtener_telefono_por_state(state)
@@ -106,42 +109,32 @@ def obtener_tareas_db(phone):
     if not tel:
         return "Sesión inválida", 403
 
-    tareas, sesiones = obtener_tareas_db(tel)
-    print(f"TAREAS: {tareas}")
-    print(f"SESIONES: {sesiones}")
-    return render_template("calendario.html", tareas=tareas, sesiones=sesiones)
-
-from flask import request, session, redirect, render_template
-
-def calendar():
+    # Verificar sesión Flask activa
+    if not session.get("logged_in") or session.get("telefono") != tel:
+        return redirect(f"{BASE_URL}/login?state={state}")
     
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username FROM squema1.usuario WHERE tel = %s",
+                (tel,)
+            )
+            row = cur.fetchone()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
 
-    tel = session.get("telefono")
+    if not row:
+        session.clear()
+        return redirect(f"{BASE_URL}/login?state={state}")
 
-    if not tel:
-
-        limpiar_states_vencidos()
-
-        state = request.args.get("state")
-
-        if state:
-
-            tel = obtener_telefono_por_state(state)
-
-            if tel:
-
-                return redirect(f"/login?telefono={tel}")
-
-        return redirect("/login")
-
-    # YA LOGUEADO
-    # IGNORAR COMPLETAMENTE EL STATE
+    if not row[0]:
+        return redirect(f"{BASE_URL}/registro?state={state}")
 
     tareas, sesiones = obtener_tareas_db(tel)
-
-    return render_template(
-        "calendario.html",
-        tareas=tareas,
-        sesiones=sesiones
-    )
+    return render_template("calendario.html", tareas=tareas, sesiones=sesiones)
+    
 

@@ -19,11 +19,7 @@ DURACION_BASE = {
 # ── 1. Régimen de sesiones ────────────────────────────────────────────────────
  
 def calcular_regimen(fecha_registro: date, deadline: date, tipo: str) -> tuple[list[date], float]:
-    """
-    Devuelve (fechas_candidatas, duracion_por_sesion).
-    La duración es el total de horas de estudio por sesión,
-    que puede estar distribuida en varios tramos si hay bloques de rutina en el medio.
-    """
+    
     duracion_base = DURACION_BASE.get(tipo)
     dias_restantes = (deadline - fecha_registro).days
  
@@ -58,15 +54,7 @@ def _generar_fechas(desde: date, hasta: date, paso: int) -> list[date]:
 # ── 2. Carga de bloques desde BD ──────────────────────────────────────────────
  
 def _cargar_bloques(telefono: str, fecha: date) -> tuple[list[tuple], list[tuple]]:
-    """
-    Devuelve (bloques_blandos, bloques_duros) para ese usuario y fecha.
- 
-    bloques_blandos: horarios_bloqueados (rutina del usuario).
-                      La sesión PUEDE partirse alrededor de estos.
- 
-    bloques_duros: subtareas ya agendadas.
-                      La sesión NO puede partirse, hay que buscar otro hueco.
-    """
+    
     dia_semana = fecha.weekday()
     conn = connect_db()
     try:
@@ -121,28 +109,7 @@ def _merge_bloques(bloques: list[tuple]) -> list[tuple]:
 # ── 3. Algoritmo para partir sesiones
  
 def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] | None:
-    """
-    Intenta encontrar tramos que sumen 'duracion' horas en el día dado.
- 
-    Reglas:
-      - Los bloques BLANDOS (horarios_bloqueados) se pueden saltar:
-        se acumula el tiempo antes y después del bloqueo.
-      - Los bloques DUROS (subtareas) no se pueden saltar:
-        si chocamos con uno, reseteamos el acumulado y empezamos de cero
-        desde después del bloque duro.
- 
-    Devuelve una lista de tramos [(inicio, fin), ...] que en total suman
-    la duración pedida, o None si el día no tiene tiempo suficiente.
- 
-    Ejemplo con EXAMEN (3h):
-      Huecos: 08:30→12:30 (4h) con bloqueo blando 10:00→10:30 en el medio
-      → tramos: [(8.5, 10.0), (10.5, 12.0)]  →  1.5h + 1.5h = 3h  
- 
-    Ejemplo con subtarea bloqueando:
-      Huecos: 08:30→10:00 libre, 10:00→11:00 SUBTAREA (duro), 11:00→14:00 libre
-      → el acumulado se resetea al tocar la subtarea
-      → se busca desde 11:00, encuentra 3h continuas hasta 14:00  
-    """
+    
     bloques_blandos, bloques_duros = _cargar_bloques(telefono, fecha)
  
     blandos_merged = _merge_bloques(bloques_blandos)
@@ -240,10 +207,7 @@ def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] 
  
 def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
                      tramos: list[tuple], sesion_grupo: int):
-    """
-    Inserta uno o más registros en subtareas para los tramos de una sesión.
-    Todos comparten el mismo sesion_grupo para poder agruparlos en el calendario.
-    """
+    
     with conn.cursor() as cur:
         for inicio, fin in tramos:
             duracion_tramo = fin - inicio
@@ -260,13 +224,7 @@ def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
 # ── 5. Orquestador principal ──────────────────────────────────────────────────
  
 def planificar_tarea(tarea_id: int) -> list[dict]:
-    """
-    Punto de entrada. Recibe el id de la tarea recién insertada,
-    calcula el régimen de sesiones y las agenda en squema1.subtareas.
- 
-    Devuelve la lista de sesiones agendadas para el mensaje de confirmación.
-    Cada sesión tiene: fecha, tramos [(inicio, fin)], duracion_total, sesion_grupo.
-    """
+    
     conn = connect_db()
     try:
         with conn.cursor() as cur:
@@ -337,6 +295,73 @@ def planificar_tarea(tarea_id: int) -> list[dict]:
  
     return sesiones_agendadas
 
+
+
+# ── 6. Disponibilidad grupal ──────────────────────────────────────────────────
+
+def verificar_disponibilidad_grupo(grupo_id, fecha, hora_inicio, hora_fin):
+    
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT usuario_tel FROM squema1.grupo_usuario
+                WHERE grupo_id = %s
+            """, (grupo_id,))
+            tels = [r[0] for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+    duracion = hora_fin - hora_inicio
+
+    if _todos_disponibles(tels, fecha, hora_inicio, hora_fin):
+        return {"disponible": True}
+
+    # Buscar siguiente hueco común en los próximos 14 días
+    fecha_busqueda = fecha
+    for _ in range(14):
+        hueco = _buscar_hueco_comun(tels, fecha_busqueda, duracion)
+        if hueco is not None:
+            return {"disponible": False, "sugerencia": (fecha_busqueda, hueco)}
+        fecha_busqueda += timedelta(days=1)
+
+    return {"disponible": False, "sugerencia": None}
+
+
+def _todos_disponibles(tels, fecha, hora_inicio, hora_fin):
+    
+    for tel in tels:
+        blandos, duros = _cargar_bloques(tel, fecha)
+        todos = _merge_bloques(blandos + duros)
+        for ini, fin in todos:
+            if ini < hora_fin and fin > hora_inicio:
+                return False
+    return True
+
+
+def _buscar_hueco_comun(tels: list, fecha: date, duracion: float) -> float | None:
+    """
+    Busca el primer hueco del día donde TODOS los integrantes
+    tienen al menos 'duracion' horas libres simultáneamente.
+    """
+    # Unir todos los bloques de todos los integrantes
+    todos_los_bloques = []
+    for tel in tels:
+        blandos, duros = _cargar_bloques(tel, fecha)
+        todos_los_bloques.extend(blandos + duros)
+
+    bloques_merged = _merge_bloques(todos_los_bloques)
+
+    cursor = 0.0
+    for ini, fin in bloques_merged:
+        if ini > cursor and ini - cursor >= duracion:
+            return cursor
+        cursor = max(cursor, fin)
+
+    if 24.0 - cursor >= duracion:
+        return cursor
+
+    return None
 
 
 def check_reminders():

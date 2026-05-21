@@ -4,14 +4,16 @@ from datetime import datetime, date
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 from app.services.service import create_user_task, complete_task, delete_task, reagendar_user_task
-from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete, reagendar_tarea
+from app.storage.grupo_store import crear_grupo, get_grupos_usuario, save_group_task
+from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete
 from app.storage.user_store import create_user_if_not_exists
 from config.config import BASE_URL
 from app.utils.state import generar_state
-from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, extract_date, extract_time
+from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, parse_grupo_data, extract_date, extract_time
 from app.storage.sesiones import guardar_state
 from app.storage.conversacion import obtener_contexto, limpiar_contexto, guardar_contexto
 from app.utils.helpers import fmt
+
 
 load_dotenv()
 
@@ -30,11 +32,36 @@ def webhook():
 
     print(f"Mensaje de {tel}: {incoming_msg}")
 
-    create_user_if_not_exists(phone[1])
+    user_data = create_user_if_not_exists(phone[1])
 
     response = MessagingResponse()
- 
-    contexto = obtener_contexto(tel) #chequear contexto pendiente antes de parse intent
+
+    # envío de manual de uso
+    if user_data["es_nuevo"]:
+        response.message("""
+            👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
+            Para agregar una tarea escribí:
+            añadir [tipo] [nombre] [fecha]
+            ✏️ Ej: añadir parcial Cálculo 15/06
+            📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
+            ─────────────────
+            📋 Ver tareas → ver tareas
+            📅 Ver tareas de hoy → ver tareas hoy
+            🗓️ Calendario → ver calendario
+            ✅ Completar → completar tarea
+            🗑️ Eliminar → eliminar tarea
+            📆 Reagendar → reagendar tarea
+            ─────────────────
+            ➕ Varias a la vez:
+            !multi
+            añadir parcial Cálculo 15/06
+            añadir entrega Informe 20/06
+            Para volver a ver este mensaje mandá "/ayuda"
+            """)
+        return str(response)
+    
+
+    contexto, datos_contexto = obtener_contexto(tel) #chequear contexto pendiente antes de parse intent
     
 
 
@@ -127,9 +154,87 @@ def webhook():
         return str(response)
     
 
+    
+    if contexto == "elegir_grupo_tarea":
+        opcion = incoming_msg.strip()       #type:ignore
+
+        if not opcion.isdigit():
+            response.message("Por favor respondé con el número del grupo.")
+            return str(response)
+
+        from app.storage.grupo_store import get_grupos_usuario, save_group_task
+        grupos = get_grupos_usuario(tel)
+
+        indice = int(opcion) - 1
+        if indice < 0 or indice >= len(grupos):
+            response.message("Número inválido. Respondé con uno de los números de la lista.")
+            return str(response)
+
+        grupo = grupos[indice]
+
+        # Solo el creador puede agregar tareas
+        if grupo["creador_tel"] != tel:
+            limpiar_contexto(tel)
+            response.message(f"Solo el creador del grupo '{grupo['nombre']}' puede agregar tareas.")
+            return str(response)
+
+        result = save_group_task(
+            grupo_id=grupo["id"],
+            tipo=datos_contexto["tipo"],            #type:ignore
+            title=datos_contexto["title"],          #type:ignore
+            deadline=datos_contexto["deadline"],    #type:ignore
+            creador_tel=tel
+        )
+
+        limpiar_contexto(tel)
+
+        if result["status"] == "inserted":
+            response.message(f"Tarea '{datos_contexto['title']}' agregada al grupo {grupo['nombre']} ")     #type:ignore    
+        elif result["status"] == "no_disponible":
+            if result["sugerencia_fecha"]:
+                response.message(
+                    f"No todos los integrantes tienen ese horario libre. "
+                    f"El próximo hueco disponible para todos es el {result['sugerencia_fecha']} a las {result['sugerencia_hora']}."
+                )
+            else:
+                response.message("No todos los integrantes tienen ese horario libre y no se encontró un hueco común en los próximos 14 días.")
+        elif result["status"] == "duplicate":
+            response.message("Esa tarea ya existe en el grupo.")
+        else:
+            response.message("Error al crear la tarea grupal.")
+
+        return str(response)           
+
+
+
+        
 
        
     intent = parse_intent(incoming_msg) #ADD, LIST, UNKNOWN
+
+    # HELP
+    if intent["type"] == "HELP":
+        response.message("""
+                👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
+                Para agregar una tarea escribí:
+                añadir [tipo] [nombre] [fecha]
+                ✏️ Ej: añadir parcial Cálculo 15/06
+                📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
+                ─────────────────
+                📋 Ver tareas → ver tareas
+                📅 Ver tareas de hoy → ver tareas hoy
+                🗓️ Calendario → ver calendario
+                ✅ Completar → completar tarea
+                🗑️ Eliminar → eliminar tarea
+                📆 Reagendar → reagendar tarea
+                ─────────────────
+                ➕ Varias a la vez:
+                !multi
+                añadir parcial Cálculo 15/06
+                añadir entrega Informe 20/06
+            """)
+        return str(response)
+
 
     
     # ADD
@@ -269,7 +374,7 @@ def webhook():
             for t in tasks:
                 msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
             
-            guardar_contexto(tel, "id_tarea_completar")  # ← guardar que esperamos ID
+            guardar_contexto(tel, "id_tarea_completar", None)  # ← guardar que esperamos ID
             response.message(msg)
 
     #MOVE_TASK
@@ -283,7 +388,7 @@ def webhook():
             for t in tasks:
                 msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
             
-            guardar_contexto(tel, "id_tarea_mover")  # ← guardar que esperamos ID
+            guardar_contexto(tel, "id_tarea_mover", None)  # ← guardar que esperamos ID
             response.message(msg)
 
     #DELETE
@@ -296,12 +401,54 @@ def webhook():
             for t in tasks: 
                 msg += f"{t['id']} - {t['tipo']} {t['title']} ({t['deadline']})\n"
             
-            guardar_contexto(tel, "id_tarea_eliminar")
+            guardar_contexto(tel, "id_tarea_eliminar", None)
             response.message(msg)
     
     #CREW
-    elif intent["type"] == "CREW":
-        return "on deck"
+    elif intent["type"] == "CREW":  
+        parsed = parse_grupo_data(incoming_msg)
+
+        if not parsed["ok"]:
+            response.message(f"No pude crear el grupo: {parsed['error']}")
+            return str(response)
+
+        result = crear_grupo(
+            nombre=parsed["data"]["nombre"],
+            creador_tel=tel,
+            usernames=parsed["data"]["usernames"]
+        )
+
+        if result["status"] == "error":
+            response.message(f"No se pudo crear el grupo. {result['message']}")
+        else:
+            integrantes_str = ", ".join(parsed["data"]["usernames"])
+            response.message(
+                f"Grupo '{result['nombre']}' creado \n"
+                f"Integrantes: {integrantes_str}"
+            )
+    
+
+
+    elif intent["type"] == "ADD_GROUP_TASK":
+        task = parse_task_data(incoming_msg)
+        if not task["ok"]:
+            response.message(f"No pude entender la tarea: {task['error']}. {task['message']}")
+            return str(response)
+
+        #obtener grupos del usuario
+        grupos = get_grupos_usuario(tel)        #type: ignore
+        if not grupos:
+            response.message("No pertenecés a ningún grupo todavía.")
+            return str(response)
+
+        #guardar contexto con los datos de la tarea
+        guardar_contexto(tel, "elegir_grupo_tarea", datos=task["data"])
+
+        msg = "¿A qué grupo querés agregar la tarea? Respondé con el número:\n"
+        for i, g in enumerate(grupos, 1):
+            msg += f"{i} - {g['nombre']}\n"
+
+        response.message(msg)   
 
     # UNKNOWN
 

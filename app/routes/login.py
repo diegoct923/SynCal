@@ -6,11 +6,11 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 def login():
 
-    telefono = request.args.get("telefono", "")
+    state = request.args.get("state", "")
     print(GOOGLE_CLIENT_ID)
     return render_template(
         "login.html",
-        telefono=telefono,
+        state=state,
         TU_GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID 
     )
 

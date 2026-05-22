@@ -13,11 +13,40 @@ from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, par
 from app.storage.sesiones import guardar_state
 from app.storage.conversacion import obtener_contexto, limpiar_contexto, guardar_contexto
 from app.utils.helpers import fmt
+from textwrap import dedent
 
 
 load_dotenv()
 
 CLIENT_ID = os.getenv("CLIENT_ID")
+HELP = dedent("""
+    👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
+
+    Para agregar una tarea escribí:
+    añadir [tipo] [nombre] [fecha]
+
+    ✏️ Ej: añadir parcial Cálculo 15/06
+
+    📚 Tipos:
+    parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
+
+    ─────────────────
+
+    📋 Ver tareas → ver tareas
+    📅 Ver tareas de hoy → ver tareas hoy
+    🗓️ Calendario → ver calendario
+    ✅ Completar → completar tarea
+    🗑️ Eliminar → eliminar tarea
+    📆 Reagendar → reagendar tarea
+
+    ─────────────────
+
+    ➕ Varias a la vez:
+
+    !multi
+    añadir parcial Cálculo 15/06
+    añadir entrega Informe 20/06
+""").strip()
 
 
 
@@ -38,26 +67,7 @@ def webhook():
 
     # envío de manual de uso
     if user_data["es_nuevo"]:
-        response.message("""
-        👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
-        Para agregar una tarea escribí:
-        añadir [tipo] [nombre] [fecha]
-        ✏️ Ej: añadir parcial Cálculo 15/06
-        📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
-        ─────────────────
-        📋 Ver tareas → ver tareas
-        📅 Ver tareas de hoy → ver tareas hoy
-        🗓️ Calendario → ver calendario
-        ✅ Completar → completar tarea
-        🗑️ Eliminar → eliminar tarea
-        📆 Reagendar → reagendar tarea
-        ─────────────────
-        ➕ Varias a la vez:
-        !multi
-        añadir parcial Cálculo 15/06
-        añadir entrega Informe 20/06
-        Para volver a ver este mensaje mandá "/ayuda"
-            """)
+        response.message(HELP)
         return str(response)
     
 
@@ -214,25 +224,7 @@ def webhook():
 
     # HELP
     if intent["type"] == "HELP":
-        response.message("""
-                👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
-                Para agregar una tarea escribí:
-                añadir [tipo] [nombre] [fecha]
-                ✏️ Ej: añadir parcial Cálculo 15/06
-                📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
-                ─────────────────
-                📋 Ver tareas → ver tareas
-                📅 Ver tareas de hoy → ver tareas hoy
-                🗓️ Calendario → ver calendario
-                ✅ Completar → completar tarea
-                🗑️ Eliminar → eliminar tarea
-                📆 Reagendar → reagendar tarea
-                ─────────────────
-                ➕ Varias a la vez:
-                !multi
-                añadir parcial Cálculo 15/06
-                añadir entrega Informe 20/06
-            """)
+        response.message(HELP)
         return str(response)
 
 
@@ -453,11 +445,34 @@ def webhook():
     # UNKNOWN
 
     elif intent["type"] == "UNKNOWN":
-        response.message(
-            "No entendí el comando.\n"
-            "Usá:\n"
-            "- Añadir Tarea, Nombre, Fecha"
-            "- Ver tareas\n"
-        )
+        msg = dedent("""
+            No entendí el comando.
 
-    return str(response)
+            Para agregar una tarea escribí:
+            añadir [tipo] [nombre] [fecha]
+
+            ✏️ Ej: añadir parcial Cálculo 15/06
+
+            📚 Tipos:
+            parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
+
+            ─────────────────
+
+            📋 Ver tareas → ver tareas
+            📅 Ver tareas de hoy → ver tareas hoy
+            🗓️ Calendario → ver calendario
+            ✅ Completar → completar tarea
+            🗑️ Eliminar → eliminar tarea
+            📆 Reagendar → reagendar tarea
+
+            ─────────────────
+
+            ➕ Varias a la vez:
+
+            !multi
+            añadir parcial Cálculo 15/06
+            añadir entrega Informe 20/06
+        """).strip()
+
+        response.message(msg)
+        return str(response)    

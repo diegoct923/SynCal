@@ -19,6 +19,7 @@ from textwrap import dedent
 load_dotenv()
 
 CLIENT_ID = os.getenv("CLIENT_ID")
+
 HELP = dedent("""
     👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
 
@@ -475,4 +476,4 @@ def webhook():
         """).strip()
 
         response.message(msg)
-        return str(response)    
+    return str(response)    

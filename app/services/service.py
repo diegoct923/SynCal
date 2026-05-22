@@ -2,18 +2,18 @@ from app.storage.task_store import completar_tarea, save_task, borrar_sesiones, 
 from scheduler.scheduler import *
 
 
-def create_user_task(phone, tipo, title, date):
+def create_user_task(phone, tipo, title, date, es_grupal = False):
     task = {
         "phone": phone, 
         "title": title,
         "deadline" : date,
-        "tipo" : tipo
+        "tipo" : tipo,
     }
     res = save_task(task)
 
-    if res["status"] == "inserted" and tipo in ("EXAMEN", "TAREA"):
-        sesiones = planificar_tarea(res["id"])
-        res["sesiones"] = sesiones  # ← las pasamos al webhook para armar el mensaje
+    if res["status"] == "inserted" and tipo in ("EXAMEN", "TAREA") and not es_grupal:
+        sesiones = planificar_tarea(res["task"]["id"])      #type: ignore
+        res["sesiones"] = sesiones      #type: ignore # ← las pasamos al webhook para armar el mensaje 
 
     return res
 

@@ -78,7 +78,6 @@
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding-top: 8px;
   padding-left: 6px;
   font-size: 13px;
   font-weight: 700;
@@ -123,29 +122,101 @@
 /* ===== TAREAS ===== */
 
 .week-task-item {
+  box-sizing: border-box;
   position: absolute;
-  left: 6px;
-  right: 6px;
+  left: 0;
+  right: 0;
   padding: 8px 10px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 800;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 4px;
   z-index: 2;
   overflow: hidden;
   cursor: grab;
 }
 
-.week-task-item:active {
-  cursor: grabbing;
+.week-task-item strong {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 12px;
 }
 
-.week-task-item span {
-  font-size: 11px;
-  font-weight: 600;
+.week-task-item strong div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+
+  width: 100%;
+  overflow: hidden;
+}
+
+.group-task-icon {
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+.week-task-item strong div span:first-child,
+.week-task-item strong div {
+  overflow: hidden;
+}
+
+.week-task-item strong div {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-text {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+}
+
+.task-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.task-time {
+  font-size: 10px;
   opacity: 0.8;
+}
+
+.task-title:hover {
+  overflow: visible;
+  white-space: nowrap;
+  animation: scrollText 4s linear infinite;
+}
+
+@keyframes scrollText {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.task-title {
+  display: inline-block;
+  min-width: 100%;
+}
+
+.task-title:hover {
+  animation: scrollText 6s linear infinite;
+}
+
+.week-task-item:active {
+  cursor: grabbing;
 }
 
 .week-day-column.drag-over {
@@ -160,8 +231,6 @@
     ),
     rgba(238, 244, 255, 0.85);
 }
-
-/* ===== BOTÓN AGREGAR ===== */
 
 .add-task-hour-btn {
   position: absolute;
@@ -227,8 +296,6 @@
       0 0 24px #c4c4c4;
   }
 }
-
-/* ===== RESUMEN SEMANAL ===== */
 
 .week-summary-panel {
   position: fixed;
@@ -372,10 +439,48 @@
   padding: 14px 16px;
 }
 
-
-.sesion-estudio {
-  border-left: 3px solid rgba(0,0,0,0.3);
-  opacity: 0.85;
-  font-style: italic;
+.week-day-column.today-column {
+  border: 2px solid #9adfff;  
+  box-shadow:
+    0 0 0 3px #9adfff7a,
+    0 0 5px #9adfff3a;
 }
 
+.blocked-time-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 1;
+  border-radius: 12px;
+  padding: 8px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(220, 38, 38, 0.18) 0px,
+      rgba(220, 38, 38, 0.18) 8px,
+      rgba(220, 38, 38, 0.08) 8px,
+      rgba(220, 38, 38, 0.08) 16px
+    );
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  color: #991b1b;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.blocked-time-slot strong {
+  display: block;
+
+  font-size: 12px;
+  font-weight: 900;
+
+  color: #991b1b;
+}
+
+.blocked-time-slot span {
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #7f1d1d;
+}

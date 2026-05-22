@@ -1,6 +1,6 @@
 import os
 from flask import request
-from datetime import datetime, date
+from datetime import datetime, date, time
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 from app.services.service import create_user_task, complete_task, delete_task, reagendar_user_task
@@ -39,24 +39,24 @@ def webhook():
     # envío de manual de uso
     if user_data["es_nuevo"]:
         response.message("""
-            👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
-            Para agregar una tarea escribí:
-            añadir [tipo] [nombre] [fecha]
-            ✏️ Ej: añadir parcial Cálculo 15/06
-            📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
-            ─────────────────
-            📋 Ver tareas → ver tareas
-            📅 Ver tareas de hoy → ver tareas hoy
-            🗓️ Calendario → ver calendario
-            ✅ Completar → completar tarea
-            🗑️ Eliminar → eliminar tarea
-            📆 Reagendar → reagendar tarea
-            ─────────────────
-            ➕ Varias a la vez:
-            !multi
-            añadir parcial Cálculo 15/06
-            añadir entrega Informe 20/06
-            Para volver a ver este mensaje mandá "/ayuda"
+        👋 ¡Hola! Soy WiCal, tu asistente de tareas universitarias.
+        Para agregar una tarea escribí:
+        añadir [tipo] [nombre] [fecha]
+        ✏️ Ej: añadir parcial Cálculo 15/06
+        📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
+        ─────────────────
+        📋 Ver tareas → ver tareas
+        📅 Ver tareas de hoy → ver tareas hoy
+        🗓️ Calendario → ver calendario
+        ✅ Completar → completar tarea
+        🗑️ Eliminar → eliminar tarea
+        📆 Reagendar → reagendar tarea
+        ─────────────────
+        ➕ Varias a la vez:
+        !multi
+        añadir parcial Cálculo 15/06
+        añadir entrega Informe 20/06
+        Para volver a ver este mensaje mandá "/ayuda"
             """)
         return str(response)
     
@@ -94,16 +94,16 @@ def webhook():
         parts = message.split(sep=",") #type: ignore
         task_id = parts[0]
         fecha=extract_date(parts[1])
-        time=extract_time(parts[1])
+        hora=extract_time(parts[1])
 
         if not task_id.isdigit():
             response.message("Por favor responda con el número de la tarea.")
             return str(response)
         
-        if  date is None:
+        if  fecha is None:
             response.message("Por favor incluya una fecha válida.")
             return str(response)
-        deadline = datetime.combine(fecha, time) if time else fecha #type: ignore 
+        deadline = datetime.combine(fecha, hora) if hora else datetime.combine(fecha, time.min)
         if deadline.date() < date.today(): #si la fecha es anterior al día del registro, no se registra 
             jason={
             "ok": False,
@@ -162,7 +162,7 @@ def webhook():
             response.message("Por favor respondé con el número del grupo.")
             return str(response)
 
-        from app.storage.grupo_store import get_grupos_usuario, save_group_task
+        
         grupos = get_grupos_usuario(tel)
 
         indice = int(opcion) - 1
@@ -436,7 +436,7 @@ def webhook():
             return str(response)
 
         #obtener grupos del usuario
-        grupos = get_grupos_usuario(tel)        #type: ignore
+        grupos = get_grupos_usuario(tel)        
         if not grupos:
             response.message("No pertenecés a ningún grupo todavía.")
             return str(response)

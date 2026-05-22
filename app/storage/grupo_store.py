@@ -101,7 +101,7 @@ def get_grupos_usuario(tel):
                 ORDER BY g.nombre
             """, (tel,))
             rows = cur.fetchall()
-            return [{"id": r[0], "nombre": r[1]} for r in rows]
+            return [ {"id": r[0], "nombre": r[1], "creador_tel": r[2], "numero": r[3]} for r in rows ]                   
     finally:
         conn.close()
         

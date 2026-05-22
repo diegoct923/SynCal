@@ -3,6 +3,11 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
   day.classList.add("calendar-day");
   day.dataset.date = fullDate;
 
+  if (isToday(fullDate)) {
+    day.classList.add("today");
+  }
+
+
   if (isOtherMonth) {
     day.classList.add("other-month");
   }
@@ -20,8 +25,16 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
 
   visibleTasks.forEach(task => {
     const taskItem = document.createElement("div");
-    taskItem.classList.add("task-item", getPriorityClass(task.priority, task.status));
-    taskItem.textContent = task.title;
+    taskItem.classList.add("task-item", getPriorityClass(task.priority));
+
+    taskItem.innerHTML = `
+      ${task.isGroup ? '<span class="group-task-icon">👥</span>' : ""}
+      <span>${task.title}</span>
+    `;
+    //FIN NUEVO
+    taskItem.draggable = true;
+    taskItem.dataset.taskId = task.id;
+    // taskItem.textContent = task.title;
     taskItem.draggable = true;
     taskItem.dataset.taskId = task.id;
 
@@ -43,6 +56,22 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
         e.clientY
       );
     });
+
+
+    if (isTouchDevice()) {
+      taskItem.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const touch = e.changedTouches[0];
+
+        openTaskMenu(
+          Number(task.id),
+          touch.clientX,
+          touch.clientY
+        );
+      }, { passive: false });
+    }
 
     taskList.appendChild(taskItem);
   });

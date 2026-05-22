@@ -41,10 +41,17 @@ def save_task(task):
             conn.commit()
             
             if result:
-                return {"status": "inserted", "id": result[0]}
+                return {"status": "inserted",
+                        "task": {
+                            "id": result[0],
+                            "title": task["title"],
+                            "deadline": task["deadline"],
+                            "priority": task["tipo"],
+                            "isGroup": False
+                        }
+                    }               
             else:
                 return {"status": "duplicate"}
-            
     except Exception as e:
         conn.rollback()
         raise e
@@ -204,6 +211,54 @@ def reagendar_tarea(task_id, deadline, usuario_tel):
                 conn.rollback()
                 return False
 
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+
+def actualizar_nombre_tarea(task_id, nombre, tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE squema1.tarea
+                SET nombre = %s
+                WHERE id = %s AND usuario_tel = %s
+                """,
+                (nombre.lower().strip(), task_id, tel)
+            )
+            if cur.rowcount == 0:
+                return False
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+
+def actualizar_tipo_tarea(task_id, tipo, tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE squema1.tarea
+                SET tipo = %s
+                WHERE id = %s AND usuario_tel = %s
+                """,
+                (tipo, task_id, tel)
+            )
+            if cur.rowcount == 0:
+                return False
         conn.commit()
         return True
     except Exception as e:

@@ -148,7 +148,7 @@ editTaskBtn.addEventListener("click", (e) => {
                   state: getState()
               })
           });
-          location.reload();
+          //location.reload();
       } catch(err) {
           console.error("Error al actualizar nombre:", err);
       }       
@@ -231,7 +231,7 @@ changeDateTaskBtn.addEventListener("click", (e) => {
                       state: getState()
                   })
               });
-              location.reload();
+              //location.reload();
           } catch(err) {
               console.error("Error al reagendar:", err);
           }
@@ -294,7 +294,7 @@ changePriorityTaskBtn.addEventListener("click", (e) => {
                   state: getState()
               })
           });
-          location.reload();
+          //location.reload();
       } catch(err) {
           console.error("Error al actualizar prioridad:", err);
       }
@@ -329,7 +329,7 @@ completeTaskBtn.addEventListener("click", async (e) => {
         task_id: task.id
       })
     });
-    location.reload();
+    //location.reload();
   } catch(err) {
     console.error("Error al completar:", err);
   }
@@ -368,7 +368,7 @@ deleteTaskBtn.addEventListener("click", (e) => {
                   state: getState()
               })
           });
-          location.reload();
+          //location.reload();
       } catch(err) {
           console.error("Error al borrar:", err);
       }

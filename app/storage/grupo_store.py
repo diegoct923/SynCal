@@ -1,7 +1,8 @@
 from app.storage.database import connect_db
 from app.utils.helpers import fmt
 from datetime import datetime
-from scheduler.scheduler import verificar_disponibilidad_grupo, DURACION_BASE
+from scheduler.manejo_de_bloques import DURACION_BASE
+from scheduler.disponibilidad import verificar_disponibilidad_grupo
 
 
 def crear_grupo(nombre, creador_tel, usernames):

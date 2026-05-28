@@ -1,9 +1,11 @@
+from app.events import emit_task_created, emit_task_updated, emit_task_deleted
 from app.storage.database import connect_db
 from app.services.service import (create_user_task, complete_task, reagendar_user_task, delete_task)
 from app.storage.task_store import  actualizar_nombre_tarea, actualizar_tipo_tarea
 from app.routes.calendar import obtener_tareas_db
 from app.utils.helpers import get_user_tel_from_state
 from flask import request, jsonify
+
 
 
 PRIORITY_TO_TIPO = {
@@ -48,6 +50,8 @@ def api_create_task():
         data["title"],
         data["deadline"]
     )
+    if result["status"] == "inserted":
+        emit_task_created(tel, result["task"])
 
     return jsonify(result)
 
@@ -65,6 +69,9 @@ def api_complete_task():
         tel
     )
 
+    if result["status"] == "completed":
+        emit_task_updated(tel, {"id": data["task_id"], "status": "COMPLETADA"})
+
     return jsonify(result) 
 
 
@@ -80,6 +87,9 @@ def api_delete_task():
         data["task_id"],
         tel
     )
+
+    if result["status"] == "deleted":
+        emit_task_deleted(tel, data["task_id"])
 
     return jsonify(result)
 
@@ -98,6 +108,9 @@ def api_reagendar_task():
         tel
     )
 
+    if result["status"] == "reagendada":
+        emit_task_updated(tel, {"id": data["task_id"], "deadline": data["deadline"]})
+
     return jsonify(result)
 
 
@@ -109,6 +122,10 @@ def api_update_nombre():
         return jsonify({"error": "unauthorized"}), 403
 
     result = actualizar_nombre_tarea(data["task_id"], data["title"], tel)
+    
+    if result:
+        emit_task_updated(tel, {"id": data["task_id"], "title": data["title"]})
+    
     return jsonify({"status": "updated" if result else "not_found"})
 
 
@@ -120,6 +137,10 @@ def api_update_prioridad():
 
     tipo = PRIORITY_TO_TIPO.get(data["priority"], "TAREA")
     result = actualizar_tipo_tarea(data["task_id"], tipo, tel)
+
+    if result:
+        emit_task_updated(tel, {"id": data["task_id"], "priority": data["priority"]})
+
     return jsonify({"status": "updated" if result else "not_found"})
 
 

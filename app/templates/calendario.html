@@ -386,12 +386,14 @@
         </div>
     </div>
 </body>
-<script> const APP_STATE = "{{ request.args.get('state') }}";</script>
 
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script> const APP_STATE = "{{ request.args.get('state') }}";</script>
 
 <script src="{{ url_for('static', filename='js/api.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket.js') }}"></script>
 
 <script src="{{ url_for('static', filename='js/monthView.js') }}"></script>
 <script src="{{ url_for('static', filename='js/weekView.js') }}"></script>

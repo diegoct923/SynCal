@@ -309,3 +309,36 @@ def borrar_sesiones(task_id):
         raise e
     finally:
         conn.close()
+
+
+
+def get_sessions_day(tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT s.hora_inicio, s.hora_fin, t.nombre
+                FROM squema1.subtareas s
+                JOIN squema1.tarea t ON t.id = s.task_id
+                WHERE s.usuario_tel = %s
+                AND s.date = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Montevideo')::date
+                AND s.status = 'PENDIENTE'
+                ORDER BY s.hora_inicio ASC
+                """,
+                (tel,)
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "hora_inicio": float(r[0]),
+                    "hora_fin": float(r[1]),
+                    "tarea_nombre": r[2]
+                }
+                for r in rows
+            ]
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

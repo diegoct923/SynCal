@@ -365,7 +365,7 @@ function moveTaskToDate(taskId, newDate) {
                     state: getState()
                 })
             });
-            location.reload();
+            //location.reload();
         } catch(err) {
             console.error("Error al reagendar:", err);
             task.date = oldDate; // revertir si falla
@@ -418,7 +418,7 @@ function moveTaskToDateAndHour(taskId, newDate, newHour, force = false) {
                   state: getState()
               })
           });
-          location.reload();
+          //location.reload();
       } catch(err) {
           console.error("Error al reagendar:", err);
           task.date = oldDate;

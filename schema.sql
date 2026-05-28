@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oWFxVF578Aiu16825pUWLUbJcAzNup2yDMCYmDVYTaVWEjRt6f5iHTNCfb7KmS7
+\restrict NVOZjYoWCb8IcNmq1RTQoMaiMabrrx5Nq38vYn7gSBic2DR1d20FCgok0Trw2WQ
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 18.3
@@ -13,7 +13,7 @@ SET idle_in_transaction_session_timeout = 0;
 SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', '', false); 
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -37,7 +37,9 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE squema1.grupo (
-    id integer NOT NULL
+    id integer NOT NULL,
+    nombre character varying(100) DEFAULT ''::character varying NOT NULL,
+    creador_tel character varying(20) DEFAULT ''::character varying NOT NULL
 );
 
 
@@ -66,6 +68,18 @@ ALTER SEQUENCE squema1.grupo_id_seq OWNED BY squema1.grupo.id;
 
 
 --
+-- Name: grupo_usuario; Type: TABLE; Schema: squema1; Owner: postgres
+--
+
+CREATE TABLE squema1.grupo_usuario (
+    grupo_id integer NOT NULL,
+    usuario_tel character varying(20) NOT NULL
+);
+
+
+ALTER TABLE squema1.grupo_usuario OWNER TO postgres;
+
+--
 -- Name: horarios_bloqueados; Type: TABLE; Schema: squema1; Owner: postgres
 --
 
@@ -74,7 +88,8 @@ CREATE TABLE squema1.horarios_bloqueados (
     usuario_tel character varying,
     dia_semana integer,
     hora_inicio numeric(4,1),
-    hora_fin numeric(4,1)
+    hora_fin numeric(4,1),
+    title character varying DEFAULT 'Bloqueado'::character varying
 );
 
 
@@ -109,7 +124,8 @@ ALTER SEQUENCE squema1.horarios_bloqueados_id_seq OWNED BY squema1.horarios_bloq
 CREATE TABLE squema1.sesion_conversacion (
     telefono character varying(20) NOT NULL,
     esperando character varying(50),
-    creado_en timestamp without time zone DEFAULT now()
+    creado_en timestamp without time zone DEFAULT now(),
+    datos jsonb
 );
 
 
@@ -180,7 +196,8 @@ CREATE TABLE squema1.tarea (
     tipo character varying(50),
     usuario_tel character varying(20) NOT NULL,
     grupo_id integer,
-    status character varying(20) DEFAULT 'PENDIENTE'::character varying
+    status character varying(20) DEFAULT 'PENDIENTE'::character varying,
+    es_grupal boolean DEFAULT false
 );
 
 
@@ -215,10 +232,12 @@ ALTER SEQUENCE squema1.tarea_id_seq OWNED BY squema1.tarea.id;
 CREATE TABLE squema1.usuario (
     id integer NOT NULL,
     tel character varying(20) NOT NULL,
-    nombre character varying(100),
+    username character varying(100),
     contrasena character varying(100),
     grupo_id integer,
-    google_id character varying(255)
+    google_id character varying(255),
+    email character varying(255),
+    minutos_anticipacion_notificacion integer DEFAULT 15
 );
 
 
@@ -282,11 +301,27 @@ ALTER TABLE ONLY squema1.usuario ALTER COLUMN id SET DEFAULT nextval('squema1.us
 
 
 --
+-- Name: grupo grupo_nombre_key; Type: CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.grupo
+    ADD CONSTRAINT grupo_nombre_key UNIQUE (nombre);
+
+
+--
 -- Name: grupo grupo_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
 --
 
 ALTER TABLE ONLY squema1.grupo
     ADD CONSTRAINT grupo_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: grupo_usuario grupo_usuario_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.grupo_usuario
+    ADD CONSTRAINT grupo_usuario_pkey PRIMARY KEY (grupo_id, usuario_tel);
 
 
 --
@@ -338,6 +373,14 @@ ALTER TABLE ONLY squema1.tarea
 
 
 --
+-- Name: usuario usuario_email_key; Type: CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.usuario
+    ADD CONSTRAINT usuario_email_key UNIQUE (email);
+
+
+--
 -- Name: usuario usuario_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
 --
 
@@ -358,6 +401,22 @@ ALTER TABLE ONLY squema1.usuario
 --
 
 CREATE INDEX idx_subtareas_telefono_fecha ON squema1.subtareas USING btree (usuario_tel, date);
+
+
+--
+-- Name: grupo_usuario grupo_usuario_grupo_id_fkey; Type: FK CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.grupo_usuario
+    ADD CONSTRAINT grupo_usuario_grupo_id_fkey FOREIGN KEY (grupo_id) REFERENCES squema1.grupo(id) ON DELETE CASCADE;
+
+
+--
+-- Name: grupo_usuario grupo_usuario_usuario_tel_fkey; Type: FK CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.grupo_usuario
+    ADD CONSTRAINT grupo_usuario_usuario_tel_fkey FOREIGN KEY (usuario_tel) REFERENCES squema1.usuario(tel);
 
 
 --
@@ -389,7 +448,7 @@ ALTER TABLE ONLY squema1.tarea
 --
 
 ALTER TABLE ONLY squema1.tarea
-    ADD CONSTRAINT tarea_usuario_fk FOREIGN KEY (usuario_tel) REFERENCES squema1.usuario(tel);
+    ADD CONSTRAINT tarea_usuario_fk FOREIGN KEY (usuario_tel) REFERENCES squema1.usuario(tel) ON DELETE CASCADE;
 
 
 --
@@ -399,15 +458,10 @@ ALTER TABLE ONLY squema1.tarea
 ALTER TABLE ONLY squema1.usuario
     ADD CONSTRAINT usuario_grupo_fk FOREIGN KEY (grupo_id) REFERENCES squema1.grupo(id);
 
---
--- email: Vincula cada teléfono de usuario con un email único de Google OAuth
---
-ALTER TABLE squema1.usuario
-ADD COLUMN email VARCHAR(255) UNIQUE;
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oWFxVF578Aiu16825pUWLUbJcAzNup2yDMCYmDVYTaVWEjRt6f5iHTNCfb7KmS7
+\unrestrict NVOZjYoWCb8IcNmq1RTQoMaiMabrrx5Nq38vYn7gSBic2DR1d20FCgok0Trw2WQ
 

@@ -1,9 +1,14 @@
 from app.integrations.twilio_client import send_whatsapp_message
 from app.storage.database import connect_db
-from app.storage.task_store import get_tasks
+from app.storage.task_store import get_tasks_day, get_sessions_day
+from app.storage.user_store import get_all_users, get_minutos_anticipacion_to_notify
+from app.utils.helpers import fmt
 from datetime import datetime, date, timedelta
 import schedule
+from scheduler.manejo_de_bloques import cargar_bloques, merge_bloques
 import time
+import threading
+
 
 
 
@@ -53,67 +58,17 @@ def _generar_fechas(desde: date, hasta: date, paso: int) -> list[date]:
  
 # ── 2. Carga de bloques desde BD ──────────────────────────────────────────────
  
-def _cargar_bloques(telefono: str, fecha: date) -> tuple[list[tuple], list[tuple]]:
-    
-    dia_semana = fecha.weekday()
-    conn = connect_db()
-    try:
-        with conn.cursor() as cur:
- 
-            # Bloques blandos: defaults globales (telefono IS NULL, dia_semana IS NULL)
-            # más los específicos del usuario para ese día de la semana.
-            cur.execute(
-                """
-                SELECT hora_inicio, hora_fin
-                FROM squema1.horarios_bloqueados
-                WHERE (usuario_tel IS NULL OR usuario_tel = %s)
-                  AND (dia_semana IS NULL OR dia_semana = %s)
-                ORDER BY hora_inicio
-                """,
-                (telefono, dia_semana)
-            )
-            bloques_blandos = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
- 
-            # Bloques duros: subtareas ya agendadas ese día (de cualquier tarea).
-            cur.execute(
-                """
-                SELECT hora_inicio, hora_fin
-                FROM squema1.subtareas
-                WHERE usuario_tel = %s AND date = %s AND status != 'CANCELADA'
-                ORDER BY hora_inicio
-                """,
-                (telefono, fecha)
-            )
-            bloques_duros = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
- 
-    finally:
-        conn.close()
- 
-    return list(bloques_blandos), list(bloques_duros)
- 
- 
-def _merge_bloques(bloques: list[tuple]) -> list[tuple]:
-    """Fusiona bloques solapados y los devuelve ordenados."""
-    if not bloques:
-        return []
-    ordenados = sorted(bloques, key=lambda b: b[0])
-    merged = [list(ordenados[0])]
-    for inicio, fin in ordenados[1:]:
-        if inicio <= merged[-1][1]:
-            merged[-1][1] = max(merged[-1][1], fin)
-        else:
-            merged.append([inicio, fin])
-    return [tuple(b) for b in merged]
+
  
  
 # ── 3. Algoritmo para partir sesiones
  
 def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] | None:
     
-    bloques_blandos, bloques_duros = _cargar_bloques(telefono, fecha)
+    bloques_blandos, bloques_duros = cargar_bloques(telefono, fecha)
  
-    blandos_merged = _merge_bloques(bloques_blandos)
-    duros_merged   = _merge_bloques(bloques_duros)
+    blandos_merged = merge_bloques(bloques_blandos)
+    duros_merged   = merge_bloques(bloques_duros)
  
     # Línea de tiempo unificada con el tipo de cada bloque
     eventos = []
@@ -297,93 +252,99 @@ def planificar_tarea(tarea_id: int) -> list[dict]:
 
 
 
-# ── 6. Disponibilidad grupal ──────────────────────────────────────────────────
-
-def verificar_disponibilidad_grupo(grupo_id, fecha, hora_inicio, hora_fin):
-    
-    conn = connect_db()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT usuario_tel FROM squema1.grupo_usuario
-                WHERE grupo_id = %s
-            """, (grupo_id,))
-            tels = [r[0] for r in cur.fetchall()]
-    finally:
-        conn.close()
-
-    duracion = hora_fin - hora_inicio
-
-    if _todos_disponibles(tels, fecha, hora_inicio, hora_fin):
-        return {"disponible": True}
-
-    # Buscar siguiente hueco común en los próximos 14 días
-    fecha_busqueda = fecha
-    for _ in range(14):
-        hueco = _buscar_hueco_comun(tels, fecha_busqueda, duracion)
-        if hueco is not None:
-            return {"disponible": False, "sugerencia": (fecha_busqueda, hueco)}
-        fecha_busqueda += timedelta(days=1)
-
-    return {"disponible": False, "sugerencia": None}
-
-
-def _todos_disponibles(tels, fecha, hora_inicio, hora_fin):
-    
-    for tel in tels:
-        blandos, duros = _cargar_bloques(tel, fecha)
-        todos = _merge_bloques(blandos + duros)
-        for ini, fin in todos:
-            if ini < hora_fin and fin > hora_inicio:
-                return False
-    return True
-
-
-def _buscar_hueco_comun(tels: list, fecha: date, duracion: float) -> float | None:
-    """
-    Busca el primer hueco del día donde TODOS los integrantes
-    tienen al menos 'duracion' horas libres simultáneamente.
-    """
-    # Unir todos los bloques de todos los integrantes
-    todos_los_bloques = []
-    for tel in tels:
-        blandos, duros = _cargar_bloques(tel, fecha)
-        todos_los_bloques.extend(blandos + duros)
-
-    bloques_merged = _merge_bloques(todos_los_bloques)
-
-    cursor = 0.0
-    for ini, fin in bloques_merged:
-        if ini > cursor and ini - cursor >= duracion:
-            return cursor
-        cursor = max(cursor, fin)
-
-    if 24.0 - cursor >= duracion:
-        return cursor
-
-    return None
-
-
 def check_reminders():
-    print("Chequeando tareas...")
+    print("[scheduler] Chequeando recordatorios...")
 
-    today = datetime.now().strftime("%d-%m")
+    users = get_all_users()
 
-    tasks = get_tasks() #type: ignore 
+    for tel in users:
+        tareas = get_tasks_day(tel)
+        sesiones = get_sessions_day(tel)
 
-    for task in tasks:
-        if task["date"] == today:
-            user = task["user"]
-            title = task["title"]
+        if not tareas and not sesiones:
+            continue
 
-            print(f"Enviando recordatorio a {user}...")
+        msg = "📅 *Recordatorio WiCal* — tareas de hoy:\n"
 
-            send_whatsapp_message(user, f"📅 Hoy tenés: {title}")
+        if tareas:
+            msg += "\n*Tareas:*\n"
+            for t in tareas:
+                hora = t["deadline"].strftime("%H:%M") if t["deadline"].hour or t["deadline"].minute else "Sin hora"
+                grupo = " 👥" if t["es_grupal"] else ""
+                msg += f"• {t['tipo']} {t['title']} — {hora}{grupo}\n"
+
+        if sesiones:
+            msg += "\n*Sesiones de estudio:*\n"
+            for s in sesiones:
+                msg += f"• 📚 {s['tarea_nombre']} — {fmt(s['hora_inicio'])} a {fmt(s['hora_fin'])}\n"
+
+        try:
+            send_whatsapp_message(f"whatsapp:+{tel}", msg)
+            print(f"[scheduler] Recordatorio enviado a {tel}")
+        except Exception as e:
+            print(f"[scheduler] Error enviando a {tel}: {e}")
+
+
+
+def check_upcoming_reminders():
+
+    print("[scheduler] Chequeando recordatorios puntuales...")
+
+    now = datetime.now()
+    users = get_all_users()
+
+    for tel in users:
+        minutos = get_minutos_anticipacion_to_notify(tel)
+        tareas  = get_tasks_day(tel)
+        sesiones = get_sessions_day(tel)
+
+        for t in tareas:
+            if not t["deadline"]:
+                continue
+            deadline = t["deadline"]
+            if not deadline.hour and not deadline.minute:
+                continue  # sin hora específica, no notificar
+
+            diff = (deadline.replace(tzinfo=None) - now).total_seconds() / 60
+            if abs(diff - minutos) <= 1:
+                msg = f"⏰ En {minutos} min: {t['tipo']} *{t['title']}*"
+                try:
+                    send_whatsapp_message(f"whatsapp:+{tel}", msg)
+                    print(f"[scheduler] Recordatorio puntual a {tel}: {t['title']}")
+                except Exception as e:
+                    print(f"[scheduler] Error: {e}")
+
+        for s in sesiones:
+            hora_inicio = s["hora_inicio"]
+            sesion_time = now.replace(
+                hour=int(hora_inicio),
+                minute=int((hora_inicio % 1) * 60),
+                second=0,
+                microsecond=0
+            )
+            diff = (sesion_time - now).total_seconds() / 60
+            if abs(diff - minutos) <= 1:
+                msg = f"⏰ En {minutos} min: sesión 📚 *{s['tarea_nombre']}* — {fmt(s['hora_inicio'])} a {fmt(s['hora_fin'])}"
+                try:
+                    send_whatsapp_message(f"whatsapp:+{tel}", msg)
+                    print(f"[scheduler] Recordatorio puntual a {tel}: {s['tarea_nombre']}")
+                except Exception as e:
+                    print(f"[scheduler] Error: {e}")
+
+
 
 def run_scheduler():
-    # cada 60 segundos (para pruebas)
-    schedule.every(60).seconds.do(check_reminders)
+    # Enviar todos los días a las 8:00 AM hora de Montevideo
+    schedule.every().day.at("08:00").do(check_reminders)
+    schedule.every(1).minutes.do(check_upcoming_reminders)
 
+    print("[scheduler] Corriendo, esperando las 8:00...")
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(30)
+
+
+def start_scheduler_thread():
+    thread = threading.Thread(target=run_scheduler, daemon=True)
+    thread.start()
+    print("[scheduler] Thread iniciado")

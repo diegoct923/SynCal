@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 from app.services.service import create_user_task, complete_task, delete_task, reagendar_user_task
 from app.storage.grupo_store import crear_grupo, get_grupos_usuario, save_group_task
 from app.storage.task_store import get_tasks, get_tasks_day, get_tasks_to_complete
-from app.storage.user_store import create_user_if_not_exists
+from app.storage.user_store import create_user_if_not_exists, set_minutos_anticipacion_to_notify        
 from config.config import BASE_URL
 from app.utils.state import generar_state
-from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, parse_grupo_data, extract_date, extract_time
+from app.utils.parser import parse_task_data, parse_intent, parsear_con_llm, parse_grupo_data, parse_anticipacion, extract_date, extract_time
 from app.storage.sesiones import guardar_state
 from app.storage.conversacion import obtener_contexto, limpiar_contexto, guardar_contexto
 from app.utils.helpers import fmt
@@ -25,28 +25,36 @@ HELP = dedent("""
 
     Para agregar una tarea escribí:
     añadir [tipo] [nombre] [fecha]
-
     ✏️ Ej: añadir parcial Cálculo 15/06
-
-    📚 Tipos:
-    parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
-
+    📚 Tipos: parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
     ─────────────────
-
     📋 Ver tareas → ver tareas
     📅 Ver tareas de hoy → ver tareas hoy
     🗓️ Calendario → ver calendario
     ✅ Completar → completar tarea
     🗑️ Eliminar → eliminar tarea
     📆 Reagendar → reagendar tarea
-
     ─────────────────
-
     ➕ Varias a la vez:
-
     !multi
     añadir parcial Cálculo 15/06
     añadir entrega Informe 20/06
+    ─────────────────
+    👥 Grupos:
+    Crear grupo → crear grupo [nombre], integrantes: user1, user2
+    ✏️ Ej: crear grupo Redes 2, integrantes: santi, diego
+
+    📌 Tarea grupal → añadir tarea grupal [tipo] [nombre] [fecha]
+    ✏️ Ej: añadir tarea grupal parcial Cálculo 15/06 a las 16:00
+    (el sistema verifica que todos tengan ese horario libre) 
+    ─────────────────
+    🔔 Recordatorios:
+    Recibís un resumen diario a las 8:00 AM con tus tareas y sesiones del día.
+    También te avisamos antes de cada tarea o sesión.
+    Para configurar con cuánta anticipación:
+    → configurar anticipación [minutos] minutos
+    ✏️ Ej: configurar anticipación 30 minutos
+    (mínimo 5 min · máximo 120 min · default 15 min)
 """).strip()
 
 
@@ -165,6 +173,7 @@ def webhook():
         return str(response)
     
 
+    #contexto tarea grupal
     
     if contexto == "elegir_grupo_tarea":
         opcion = incoming_msg.strip()       #type:ignore
@@ -422,6 +431,7 @@ def webhook():
     
 
 
+    #ADD GROUP TASK
     elif intent["type"] == "ADD_GROUP_TASK":
         task = parse_task_data(incoming_msg)
         if not task["ok"]:
@@ -443,12 +453,25 @@ def webhook():
 
         response.message(msg)   
 
-    # UNKNOWN
 
+
+    elif intent["type"] == "SET_ANTICIPACION_NOTIFICACIONES":
+        
+        parsed = parse_anticipacion(incoming_msg)
+        if not parsed["ok"]:
+            response.message(f"No pude configurar la anticipación: {parsed['error']}")
+        else:
+            minutos = parsed["data"]["minutos"]
+            set_minutos_anticipacion_to_notify(tel, minutos)
+            response.message(f"Está bien, te voy a avisar {minutos} minutos antes de cada tarea y sesión.") 
+
+
+
+    # UNKNOWN
     elif intent["type"] == "UNKNOWN":
         msg = dedent("""
             No entendí el comando.
-
+            
             Para agregar una tarea escribí:
             añadir [tipo] [nombre] [fecha]
 
@@ -456,23 +479,26 @@ def webhook():
 
             📚 Tipos:
             parcial · examen · tarea · entrega · actividad · práctico · deber · lectura
-
             ─────────────────
-
             📋 Ver tareas → ver tareas
             📅 Ver tareas de hoy → ver tareas hoy
             🗓️ Calendario → ver calendario
             ✅ Completar → completar tarea
             🗑️ Eliminar → eliminar tarea
             📆 Reagendar → reagendar tarea
-
             ─────────────────
-
             ➕ Varias a la vez:
-
             !multi
             añadir parcial Cálculo 15/06
             añadir entrega Informe 20/06
+            ─────────────────
+            🔔 Recordatorios:
+            Recibís un resumen diario a las 8:00 AM con tus tareas y sesiones del día.
+            También te avisamos antes de cada tarea o sesión.
+            Para configurar con cuánta anticipación:
+            → configurar anticipación [minutos] minutos
+            ✏️ Ej: configurar anticipación 30 minutos
+            (mínimo 5 min · máximo 120 min · default 15 min)        
         """).strip()
 
         response.message(msg)

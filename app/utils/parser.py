@@ -258,6 +258,9 @@ def parse_intent(text) -> dict:
     if any(x in text for x in ["crear grupo", "armar grupo", "nuevo grupo", "formar grupo", "materializar grupo", "haya grupo" ]):
         return {"type": "CREW"}
 
+    if any(x in text for x in ["configurar anticipación", "configurar notificaciones", "anticipacion de recordatorio", "configurar anticipacion de recordatorio", "anticipacion", "configurar recordatorio"]):
+        return {"type": "SET_ANTICIPACION_NOTIFICACIONES"}
+
     return {"type": "UNKNOWN"}
 
 
@@ -331,3 +334,20 @@ def parse_grupo_data(msg):
             "usernames": usernames
         }
     }
+
+
+
+def parse_anticipacion(msg):
+    match = re.search(r'(\d+)\s*(?:minutos?|mins?|m)', normalize(msg))
+    if not match:
+        return {
+            "ok": False,
+            "error": "No encontré los minutos. Usá: 'Configurar anticipación 30 minutos'"
+        }
+    minutos = int(match.group(1))
+    if minutos < 5 or minutos > 120:
+        return {
+            "ok": False,
+            "error": "La anticipación debe estar entre 5 y 120 minutos."
+        }
+    return {"ok": True, "data": {"minutos": minutos}}

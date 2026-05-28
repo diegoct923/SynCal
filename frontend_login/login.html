@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WiCal — Iniciar sesión</title>
+
+  <link rel="stylesheet" href="/login.css">
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+  <main class="login-page">
+    
+    <section class="login-visual">
+      <div class="logo">
+        <img src="logo_tron.png" alt="WiCal Logo">
+      </div>
+
+      <div class="hero-copy">
+        <h1>Organizá tu semana sin perder el ritmo.</h1>
+        <p>
+          Accedé a tu calendario, tareas y horarios desde cualquier dispositivo.
+        </p>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <div class="card">
+
+        <h2>Bienvenido</h2>
+
+        <p>Iniciá sesión con Google para acceder a tu calendario.</p>
+
+        <div class="divider"></div>
+
+        <div
+          id="g_id_onload"
+          data-client_id="{{ TU_GOOGLE_CLIENT_ID }}"
+          data-callback="handleCredentialResponse"
+        ></div>
+
+        <div class="google-box">
+          <div class="g_id_signin" data-type="standard"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const state = "{{ state }}";
+
+    async function handleCredentialResponse(response) {
+      const token = response.credential;
+
+      const res = await fetch("/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token, state: state }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.needs_username) {
+          window.location.href = `/registro?state=${state}`;
+        } else {
+          window.location.href = `/calendar?state=${state}`;
+        }
+      } else {
+        alert("Error autenticando con Google.");
+      }
+    }
+  </script>
+
+</body>
+</html>

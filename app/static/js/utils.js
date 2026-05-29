@@ -91,60 +91,6 @@ function autoScrollWhileDragging(e) {
   }
 }
 
-
-// function addTaskInteractionHandlers(taskItem, taskId) {
-//   const openMenu = (x, y) => {
-//     openTaskMenu(taskId, x, y);
-//   };
-
-//   taskItem.addEventListener("contextmenu", (e) => {
-//     e.preventDefault();
-//     e.stopPropagation();
-//     openMenu(e.clientX, e.clientY);
-//   });
-
-//   if (isTouchDevice()) {
-//     let pressTimer = null;
-//     let startX = 0;
-//     let startY = 0;
-//     let didMove = false;
-
-//     taskItem.addEventListener("touchstart", (e) => {
-//       const touch = e.touches[0];
-
-//       startX = touch.clientX;
-//       startY = touch.clientY;
-//       didMove = false;
-
-//       pressTimer = setTimeout(() => {
-//         if (!didMove) {
-//           openMenu(touch.clientX, touch.clientY);
-//         }
-//       }, 700);
-//     });
-
-//     taskItem.addEventListener("touchmove", (e) => {
-//       const touch = e.touches[0];
-
-//       const distanceX = Math.abs(touch.clientX - startX);
-//       const distanceY = Math.abs(touch.clientY - startY);
-
-//       if (distanceX > 10 || distanceY > 10) {
-//         didMove = true;
-//         clearTimeout(pressTimer);
-//       }
-//     });
-
-//     taskItem.addEventListener("touchend", () => {
-//       clearTimeout(pressTimer);
-//     });
-
-//     taskItem.addEventListener("touchcancel", () => {
-//       clearTimeout(pressTimer);
-//     });
-//   }
-// }
-
 function formatDate(year, month, day) {
   const mm = String(month + 1).padStart(2, "0");
   const dd = String(day).padStart(2, "0");

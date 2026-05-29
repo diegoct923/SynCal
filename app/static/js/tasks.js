@@ -348,30 +348,31 @@ function getPriorityClass(priority) {
 }
 
 function moveTaskToDate(taskId, newDate) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
 
-    const oldDate = task.date;
-    task.date = newDate;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
 
-    (async () => {
-        try {
-            await fetch(`${BASE_URL}/api/tasks/reagendar`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    task_id: taskId,
-                    deadline: `${newDate}T${String(task.startHour ?? 9).padStart(2, "0")}:00:00`,
-                    state: getState()
-                })
-            });
-            //location.reload();
-        } catch(err) {
-            console.error("Error al reagendar:", err);
-            task.date = oldDate; // revertir si falla
-            renderCalendar();
-        }
-    })();
+  const oldDate = task.date;
+  task.date = newDate;
+
+  (async () => {
+      try {
+          await fetch(`${BASE_URL}/api/tasks/reagendar`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  task_id: taskId,
+                  deadline: `${newDate}T${String(task.startHour ?? 9).padStart(2, "0")}:00:00`,
+                  state: getState()
+              })
+          });
+          //location.reload();
+      } catch(err) {
+          console.error("Error al reagendar:", err);
+          task.date = oldDate; // revertir si falla
+          renderCalendar();
+      }
+  })();
 }
 
 function moveTaskToDateAndHour(taskId, newDate, newHour, force = false) {
@@ -405,7 +406,6 @@ function moveTaskToDateAndHour(taskId, newDate, newHour, force = false) {
 
   task.date = newDate;
   task.startHour = Number(newHour);
-  
 
   (async () => {
       try {
@@ -448,21 +448,29 @@ function getDurationByPriority(priority) {
 }
 
 async function createTask(title, date, startHour, priority, isGroup = false, force = false) {
-    
-    const duration = getDurationByPriority(priority);
-    const dayIndex = getDayIndexFromDate(date);
-    const conflict = getBlockedSlotConflict(dayIndex, startHour, duration);
 
-    if (conflict && !force) {
-        openConfirmBlockedSlotModal(
-            () => createTask(title, date, startHour, priority, isGroup, true),
-            () => renderCalendar(),
-            conflict
-        );
-        return false;
-    }
+    // FETCH: POST → crear nueva tarea
 
-    try {
+  const duration = getDurationByPriority(priority);
+  const dayIndex = getDayIndexFromDate(date);
+
+  const conflict = getBlockedSlotConflict(dayIndex, startHour, duration);
+
+  if (conflict && !force) {
+    openConfirmBlockedSlotModal(
+      () => {
+        createTask(title, date, startHour, priority, isGroup, true);
+      },
+      () => {
+        renderCalendar();
+      },
+      conflict
+    );
+
+    return false;
+  }
+
+  try {
         const result = await apiCreateTask({
             title,
             priority,
@@ -494,7 +502,7 @@ async function createTask(title, date, startHour, priority, isGroup = false, for
 //FIN NUEVO
 
 // NUEVO
-
+let blockedTimeSlots = [];
 
 function getNextBlockedSlotId() {
   if (blockedTimeSlots.length === 0) return 1;

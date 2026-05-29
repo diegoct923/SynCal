@@ -121,7 +121,7 @@ editTaskBtn.addEventListener("click", (e) => {
 
       <div class="custom-modal-message" id="taskTitleError"></div>
     `,
-    async() => {
+    async () => {
       const input = document.getElementById("taskTitleInput");
       const typeSelect = document.getElementById("taskTypeSelect");
       const error = document.getElementById("taskTitleError");
@@ -135,8 +135,6 @@ editTaskBtn.addEventListener("click", (e) => {
 
       task.title = value;
       task.isGroup = typeSelect.value === "group";
-
-      
       closeCustomModal()
       try {
           await fetch(`${BASE_URL}/api/tasks/nombre`, {
@@ -152,8 +150,6 @@ editTaskBtn.addEventListener("click", (e) => {
       } catch(err) {
           console.error("Error al actualizar nombre:", err);
       }       
-
-      
     }
   );
 });
@@ -213,7 +209,6 @@ changeDateTaskBtn.addEventListener("click", (e) => {
         return;
       }
 
-      
       task.date = newDate;
       task.startHour = newHour;
       task.duration = newDuration;
@@ -235,11 +230,8 @@ changeDateTaskBtn.addEventListener("click", (e) => {
           } catch(err) {
               console.error("Error al reagendar:", err);
           }
-      })();     
+      })(); 
 
-      
-
-      
       closeCustomModal();
     }
   );
@@ -267,7 +259,7 @@ changePriorityTaskBtn.addEventListener("click", (e) => {
         <option value="completada" ${task.priority === "completada" ? "selected" : ""}>Completada</option>
       </select>
     `,
-    async() => {
+    async () => {
       const select = document.getElementById("taskPrioritySelect");
       const value = select.value;
 
@@ -281,7 +273,6 @@ changePriorityTaskBtn.addEventListener("click", (e) => {
 
       task.priority = value;
 
-      
       closeCustomModal();
 
       try {
@@ -298,8 +289,7 @@ changePriorityTaskBtn.addEventListener("click", (e) => {
       } catch(err) {
           console.error("Error al actualizar prioridad:", err);
       }
-
-      
+      closeCustomModal();
     }
   );
 });
@@ -349,31 +339,26 @@ deleteTaskBtn.addEventListener("click", (e) => {
       <p>¿Seguro que querés eliminar esta tarea?</p>
       <p class="custom-modal-message">Esta acción no se puede deshacer.</p>
     `,
-    async() => {
+    async () => {
       const index = tasks.findIndex(t => t.id === taskIdToDelete);
 
       if (index !== -1) {
-        tasks.splice(index, 1);
-        
-  
-
-      closeCustomModal();
-
-      try {
-          await fetch(`${BASE_URL}/api/tasks/delete`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                  task_id: taskIdToDelete,
-                  state: getState()
-              })
-          });
-          //location.reload();
-      } catch(err) {
+          tasks.splice(index, 1);
+          try {
+            await fetch(`${BASE_URL}/api/tasks/delete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    task_id: taskIdToDelete,
+                    state: getState()
+                })
+            });
+            //location.reload();
+        } catch(err) {
           console.error("Error al borrar:", err);
+        }
+        
       }
-              
-    }
 
       closeCustomModal();
     },

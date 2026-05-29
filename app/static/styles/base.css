@@ -107,6 +107,15 @@ body {
 }
 
 /* NUEVO */
+
+.right-options {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
 .calendar-options {
   position: relative;
   width: fit-content;
@@ -126,10 +135,35 @@ body {
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.3);
 }
 
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: none;
+  background: #d44e51;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.logout-btn:hover {
+  background: #b63b3e;
+  transform: translateY(-1px);
+}
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
+  fill: white;
+}
+
 .calendar-options-panel {
   position: absolute;
   top: calc(100% + 12px);
-  left: -200%;
+  left: -100%;
   transform: translateX(-50%);
   z-index: 50;
   width: 280px;

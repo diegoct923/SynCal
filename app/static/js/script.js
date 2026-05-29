@@ -80,6 +80,13 @@ function renderCalendar() {
     weekDetailsBtn.classList.add("hidden");
     weekSummaryPanel.classList.add("hidden");
     manageBlocksBtn.classList.add("hidden");
+    // NUEVO VISTA MOVIL
+    const mobileMonthView = document.getElementById("mobileMonthView");
+    if (mobileMonthView) {
+      mobileMonthView.classList.remove("hidden");
+    }
+    //FIN NUEVO VISTA MOVIL
+
   } else {
     monthLayout.classList.add("hidden");
     monthWeekdays.classList.add("hidden");
@@ -88,6 +95,13 @@ function renderCalendar() {
     weekDetailsBtn.classList.remove("hidden");
     manageBlocksBtn.classList.remove("hidden");
     weekSummaryPanel.classList.add("hidden");
+
+    // NUEVO VISTA MOVIL
+    const mobileMonthView = document.getElementById("mobileMonthView");
+    if (mobileMonthView) {
+      mobileMonthView.classList.add("hidden");
+    }
+    //FIN NUEVO VISTA MOVIL
 
     renderWeekView();
   }
@@ -234,5 +248,4 @@ document.addEventListener("click", () => {
 
 loadYearOptions();
 
-loadTasksFromBackend();
-
+renderCalendar();

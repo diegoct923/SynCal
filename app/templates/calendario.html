@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wical - Calendario</title>
+    <title>WiCal - Calendario</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/month.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/week.css') }}">
@@ -14,7 +14,6 @@
 
   <main class="calendar-page">
     
-    <!-- NUEVO -->
     <div class="task-menu hidden" id="taskMenu">
         <div class="task-menu-header">
             <strong id="taskMenuTitle">Tarea</strong>
@@ -29,7 +28,6 @@
         <button type="button" id="toggleGroupTaskBtn">Cambiar tipo</button>
         <button type="button" id="deleteTaskBtn" class="danger">Eliminar</button>
     </div>
-    <!-- FIN NUEVO -->
 
     <aside class="week-summary-panel hidden" id="weekSummaryPanel">
                 <div class="summary-header">
@@ -68,17 +66,10 @@
       <div class="calendar-header">
 
         <div class="calendar-logo">
-                <img src="{{ url_for('static', filename='logo_wical.png') }}" alt="Logo WiCal" />
+                <img src="{{ url_for('static', filename='logo_wical.png') }}" alt="Logo Wical" />
         </div>
         <div class="middle-header">
-                <!-- ELINIMAR -->
-                <!-- <h1 class="calendar-title" id="calendarTitle">Abril 2026</h1> -->
-                <!-- <button class="week-details-btn hidden" id="weekDetailsBtn">
-                    Ver resumen semanal
-                </button> -->
-                <!-- FIN ELIMINAR -->
 
-                <!-- NUEVO -->
                 <div class="calendar-title-wrapper">
                     <button class="calendar-title-btn" id="calendarTitleBtn">
                         <span id="calendarTitle"></span>
@@ -108,43 +99,22 @@
                         <button type="button" id="applyMonthYearBtn">Aplicar</button>
                     </div>
                 </div>
-                <!-- FIN NUEVO -->
         </div>
         
-        <!-- <div class="right-header">
-            
-            <div class="calendar-legend">
-                <span class="legend-item">
-                <span class="legend-dot alta"></span>
-                Alta
-                </span>
-                <span class="legend-item">
-                <span class="legend-dot media"></span>
-                Media
-                </span>
-                <span class="legend-item">
-                <span class="legend-dot baja"></span>
-                Baja
-                </span>
-                <span class="legend-item">
-                <span class="legend-dot completada"></span>
-                Completada
-                </span>
-            </div>
-
-            <div class="calendar-view-toggle">
-                <button class="toggle-btn active" id="monthViewBtn">Mes</button>
-                <button class="toggle-btn" id="weekViewBtn">Semana</button>
-            </div>
-        </div> -->
-
-        <!-- FIN ELIMINAR -->
-
-        <!-- NUEVO -->
+       
         <div class="calendar-options">
-            <button class="calendar-options-btn" id="calendarOptionsBtn" type="button">
-                ☰
-            </button>
+            <div class="right-options">
+                <button class="calendar-options-btn" id="calendarOptionsBtn" type="button">
+                    ☰
+                </button>
+
+                <button id="logoutBtn" class="logout-btn">
+                <svg class="logout-icon" viewBox="0 0 24 24">
+                    <path d="M16 17l5-5-5-5v3H9v4h7v3z"/>
+                    <path d="M4 4h8v2H6v12h6v2H4z"/>
+                </svg>
+                </button>
+            </div>
 
             <div class="calendar-options-panel hidden" id="calendarOptionsPanel">
                 
@@ -169,7 +139,7 @@
                 </div>
             </div>
         </div>
-        <!-- FIN NUEVO -->
+
 
       </div>
 
@@ -341,6 +311,28 @@
                     </article>
                 </div>
             </div>
+
+            <!-- NUEVO VISTA MOVIL -->
+            <section class="mobile-month-view hidden" id="mobileMonthView">
+
+                <div class="mobile-weekdays">
+                    <span>L</span>
+                    <span>M</span>
+                    <span>M</span>
+                    <span>J</span>
+                    <span>V</span>
+                    <span>S</span>
+                    <span>D</span>
+                </div>
+
+                <div class="mobile-calendar-grid" id="mobileCalendarGrid"></div>
+
+                <div class="mobile-selected-day-panel">
+                    <div class="mobile-selected-date" id="mobileSelectedDate">Hoy</div>
+                    <div class="mobile-selected-task-list" id="mobileSelectedTaskList"></div>
+                </div>
+            </section>
+            <!-- NUEVO VISTA MOVIL -->
         </div>
       
         <div class="week-view-wrapper hidden" id="weekViewWrapper">
@@ -386,7 +378,6 @@
         </div>
     </div>
 </body>
-
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script> const APP_STATE = "{{ request.args.get('state') }}";</script>
 

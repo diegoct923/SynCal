@@ -2,7 +2,10 @@ from flask import request
 from flask import render_template
 from app.storage.database import connect_db
 from app.storage.sesiones import obtener_telefono_por_state, limpiar_states_vencidos
-
+from app.routes.callback import google_callback
+from app.routes.login import login
+from flask import request, render_template, session, redirect
+from config.config import BASE_URL
 
 def obtener_tareas_db(phone):
     conn = connect_db()
@@ -95,6 +98,9 @@ def obtener_tareas_db(phone):
         conn.close()
 
 
+
+
+
 def calendar():
     limpiar_states_vencidos()
     state = request.args.get("state")
@@ -103,7 +109,32 @@ def calendar():
     if not tel:
         return "Sesión inválida", 403
 
+    # Verificar sesión Flask activa
+    if not session.get("logged_in") or session.get("telefono") != tel:
+        return redirect(f"{BASE_URL}/login?state={state}")
+    
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username FROM squema1.usuario WHERE tel = %s",
+                (tel,)
+            )
+            row = cur.fetchone()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+    if not row:
+        session.clear()
+        return redirect(f"{BASE_URL}/login?state={state}")
+
+    if not row[0]:
+        return redirect(f"{BASE_URL}/registro?state={state}")
+
     tareas, sesiones = obtener_tareas_db(tel)
-    print(f"TAREAS: {tareas}")
-    print(f"SESIONES: {sesiones}")
     return render_template("calendario.html", tareas=tareas, sesiones=sesiones)
+    
+

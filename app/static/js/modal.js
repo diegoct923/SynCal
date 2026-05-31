@@ -27,6 +27,38 @@ customModalSave.addEventListener("click", () => {
   }
 });
 
+
+function openConfirmBlockedSlotModal(onConfirm, onCancel, conflict) {
+  openCustomModal(
+    "Franja bloqueada",
+    `
+      <p>Estás intentando crear una tarea dentro de una franja bloqueada.</p>
+
+      <p>
+        <strong>${conflict.title}</strong><br>
+        ${String(conflict.startHour).padStart(2, "0")}:00 - 
+        ${String(conflict.startHour + conflict.duration).padStart(2, "0")}:00
+      </p>
+
+      <p>¿Querés crear la tarea ahí de todas formas?</p>
+    `,
+    () => {
+      onConfirm();
+      closeCustomModal();
+    },
+    "Crear igual",
+    true
+  );
+
+  customModalCancel.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    onCancel();
+    closeCustomModal();
+  };
+}
+
 customModalCancel.addEventListener("click", closeCustomModal);
 customModalClose.addEventListener("click", closeCustomModal);
 

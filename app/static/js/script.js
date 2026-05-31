@@ -40,9 +40,27 @@ const weekBoardScroll = document.getElementById("weekBoardScroll");
 const weekDaysHeaderScroll = document.getElementById("weekDaysHeaderScroll");
 const weekHoursScroll = document.getElementById("weekHoursScroll");
 
+const taskMenuTitle = document.getElementById("taskMenuTitle");
+const taskMenuCloseBtn = document.getElementById("taskMenuCloseBtn");
+
+const calendarOptionsBtn = document.getElementById("calendarOptionsBtn");
+const calendarOptionsPanel = document.getElementById("calendarOptionsPanel");
+
+const calendarTitleBtn = document.getElementById("calendarTitleBtn");
+const monthYearPicker = document.getElementById("monthYearPicker");
+const monthSelect = document.getElementById("monthSelect");
+const yearSelect = document.getElementById("yearSelect");
+const applyMonthYearBtn = document.getElementById("applyMonthYearBtn");
+
+const manageBlocksBtn = document.getElementById("manageBlocksBtn");
+const toggleGroupTaskBtn = document.getElementById("toggleGroupTaskBtn");
+
+
 let highlightedTaskId = null;
 
-let currentDate = new Date(2026, 3, 1); // Abril 2026
+const today = new Date();
+let currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+
 let currentView = "month";
 
 let selectedTaskId = null;
@@ -61,13 +79,29 @@ function renderCalendar() {
     renderMonthView();
     weekDetailsBtn.classList.add("hidden");
     weekSummaryPanel.classList.add("hidden");
+    manageBlocksBtn.classList.add("hidden");
+    // NUEVO VISTA MOVIL
+    const mobileMonthView = document.getElementById("mobileMonthView");
+    if (mobileMonthView) {
+      mobileMonthView.classList.remove("hidden");
+    }
+    //FIN NUEVO VISTA MOVIL
+
   } else {
     monthLayout.classList.add("hidden");
     monthWeekdays.classList.add("hidden");
     weekViewWrapper.classList.remove("hidden");
 
     weekDetailsBtn.classList.remove("hidden");
+    manageBlocksBtn.classList.remove("hidden");
     weekSummaryPanel.classList.add("hidden");
+
+    // NUEVO VISTA MOVIL
+    const mobileMonthView = document.getElementById("mobileMonthView");
+    if (mobileMonthView) {
+      mobileMonthView.classList.add("hidden");
+    }
+    //FIN NUEVO VISTA MOVIL
 
     renderWeekView();
   }
@@ -147,5 +181,72 @@ weekDetailsBtn.addEventListener("click", () => {
 summaryCloseBtn.addEventListener("click", () => {
   weekSummaryPanel.classList.add("hidden");
 });
+
+calendarOptionsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  calendarOptionsPanel.classList.toggle("hidden");
+});
+
+calendarOptionsPanel.addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
+document.addEventListener("click", () => {
+  calendarOptionsPanel.classList.add("hidden");
+});
+
+calendarTitleBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  datePickerMenu.classList.toggle("hidden");
+});
+
+function loadYearOptions() {
+  yearSelect.innerHTML = "";
+
+  const currentYear = new Date().getFullYear();
+
+  for (let year = currentYear - 5; year <= currentYear + 10; year++) {
+    const option = document.createElement("option");
+    option.value = year;
+    option.textContent = year;
+    yearSelect.appendChild(option);
+  }
+}
+
+calendarTitleBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  monthSelect.value = currentDate.getMonth();
+  yearSelect.value = currentDate.getFullYear();
+
+  monthYearPicker.classList.toggle("hidden");
+});
+
+applyMonthYearBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  const selectedMonth = Number(monthSelect.value);
+  const selectedYear = Number(yearSelect.value);
+
+  if (currentView === "month") {
+    currentDate = new Date(selectedYear, selectedMonth, 1);
+  } else {
+    currentDate = new Date(selectedYear, selectedMonth, 1);
+  }
+
+  monthYearPicker.classList.add("hidden");
+  renderCalendar();
+});
+
+monthYearPicker.addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
+document.addEventListener("click", () => {
+  monthYearPicker.classList.add("hidden");
+});
+
+loadYearOptions();
+loadTasksFromBackend();
 
 renderCalendar();

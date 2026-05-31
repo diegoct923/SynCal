@@ -34,7 +34,10 @@ function createWeekTimeSlots(weekDates) {
     column.classList.add("week-day-column");
     column.dataset.date = fullDate;
 
-    // Marcar el día seleccionado desde "+ tareas más"
+      if (isToday(fullDate)) {
+        column.classList.add("today-column");
+      }
+
     if (highlightedDate === fullDate) {
       column.classList.add("week-day-highlighted");
     }
@@ -43,6 +46,7 @@ function createWeekTimeSlots(weekDates) {
       e.preventDefault();
       column.classList.add("drag-over");
     });
+
 
     column.addEventListener("dragleave", () => {
       column.classList.remove("drag-over");
@@ -100,105 +104,120 @@ function renderWeeklyTasks(weekDates) {
 
     const dayDate = weekDateStrings[dayIndex];
 
-    // ── Tareas principales ────────────────────────────────────────────────
     const dayTasks = weekTasks
       .filter(task => task.date === dayDate)
-      .map(task => ({
-        ...task,
-        startHour: Number(task.startHour ?? 9),
-        duration:  Number(task.duration ?? 1),
-        endHour:   Math.min(Number(task.startHour ?? 9) + Number(task.duration ?? 1), 24),
-        _tipo: "tarea"
-      }))
-      .sort((a, b) => a.startHour - b.startHour);
+      .map(task => {
+        const startHour = Number(task.startHour ?? 9);
+        const duration = Number(task.duration ?? 1);
+        const endHour = Math.min(startHour + duration, 24);
 
-    // ── Tramos de sesiones → un item por tramo ────────────────────────────
-    const daySessionItems = sesiones
-      .filter(s => s.date === dayDate)
-      .flatMap(sesion =>
-        sesion.tramos.map((tramo, i) => ({
-          id:         `s-${sesion.sesion_grupo}-${i}`,
-          title:      sesion.tarea_nombre,
-          tarea_tipo: sesion.tarea_tipo,
-          startHour:  tramo.hora_inicio,
-          duration:   tramo.hora_fin - tramo.hora_inicio,
-          endHour:    tramo.hora_fin,
-          esContinuacion: i > 0,
-          _tipo: "sesion"
-        }))
-      )
-      .sort((a, b) => a.startHour - b.startHour);
-
-    // ── Unificar y agrupar por solapamiento ───────────────────────────────
-    const allItems = [...dayTasks, ...daySessionItems]
+        return {
+          ...task,
+          startHour,
+          duration,
+          endHour
+        };
+      })
       .sort((a, b) => a.startHour - b.startHour);
 
     const groups = [];
 
-    allItems.forEach(item => {
+    dayTasks.forEach(task => {
       let placed = false;
+
       for (const group of groups) {
         const groupStart = Math.min(...group.map(t => t.startHour));
-        const groupEnd   = Math.max(...group.map(t => t.endHour));
-        if (item.startHour < groupEnd && item.endHour > groupStart) {
-          group.push(item);
+        const groupEnd = Math.max(...group.map(t => t.endHour));
+
+        const overlapsGroup = task.startHour < groupEnd && task.endHour > groupStart;
+
+        if (overlapsGroup) {
+          group.push(task);
           placed = true;
           break;
         }
       }
-      if (!placed) groups.push([item]);
+
+      if (!placed) {
+        groups.push([task]);
+      }
     });
 
-    // ── Renderizar ────────────────────────────────────────────────────────
     groups.forEach(group => {
       const total = group.length;
 
-      group.forEach((item, index) => {
-        const el = document.createElement("div");
+      group.forEach((task, index) => {
+        const taskItem = document.createElement("div");
+        taskItem.classList.add("week-task-item", getPriorityClass(task.priority));
+        taskItem.dataset.taskId = task.id;
 
-        if (item._tipo === "tarea") {
-          el.classList.add("week-task-item", getPriorityClass(item.priority, item.status));
-          el.dataset.taskId = item.id;
-          el.draggable = true;
+        taskItem.draggable = true;
 
-          el.innerHTML = `
-            <strong>${item.title}</strong>
-            <span>${String(Math.floor(item.startHour)).padStart(2,"0")}:00 - ${String(Math.floor(item.endHour)).padStart(2,"0")}:00</span>
-          `;
+        taskItem.innerHTML = `
+           <strong>
+              ${task.isGroup ? '<span class="group-task-icon">👥</span>' : ""}
+              <div class="task-text">
+                <span class="task-title">${task.title}</span>
+                <span class="task-time">
+                  ${String(task.startHour).padStart(2, "0")}:00 - ${String(task.endHour).padStart(2, "0")}:00
+                </span>
+              </div>
+            </strong>
+        `;
+        
+      
+        taskItem.style.top = `${task.startHour * HOUR_HEIGHT}px`;
+        taskItem.style.height = `${task.duration * HOUR_HEIGHT}px`;
+        taskItem.style.left = `calc(${index} * (100% / ${total}))`;
+        taskItem.style.width = `calc(100% / ${total})`;
+        taskItem.style.right = "auto";
 
-          el.addEventListener("contextmenu", (e) => {
+        taskItem.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          openTaskMenu(
+            Number(e.currentTarget.dataset.taskId),
+            e.clientX,
+            e.clientY
+          );
+        });
+
+        if (isTouchDevice()) {
+          taskItem.addEventListener("touchend", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            openTaskMenu(Number(e.currentTarget.dataset.taskId), e.clientX, e.clientY);
-          });
 
-          el.addEventListener("dragstart", () => { draggedTaskId = Number(item.id); });
-          el.addEventListener("dragend",   () => { draggedTaskId = null; });
+            const touch = e.changedTouches[0];
 
-          if (highlightedTaskId === item.id) {
-            el.classList.add("week-task-highlighted");
-          }
+            openTaskMenu(
+              Number(task.id),
+              touch.clientX,
+              touch.clientY
+            );
+          }, { passive: false });
+        }
+        
 
-          if (highlightedTaskId !== null) {
-            setTimeout(() => { highlightedTaskId = null; renderCalendar(); }, 3000);
-          }
+        taskItem.addEventListener("dragstart", () => {
+          draggedTaskId = Number(task.id);
+        });
 
-        } else {
-          el.classList.add("week-task-item", getPriorityClass(item.tarea_tipo), "sesion-estudio");
-
-          el.innerHTML = `
-            <strong>📚 ${item.esContinuacion ? "↳ " : ""}${item.title}</strong>
-            <span>${_fmtH(item.startHour)} - ${_fmtH(item.endHour)}</span>
-          `;
+        taskItem.addEventListener("dragend", () => {
+          draggedTaskId = null;
+        });
+        
+        if (highlightedTaskId === task.id) {
+          taskItem.classList.add("week-task-highlighted");
         }
 
-        el.style.top    = `${item.startHour * HOUR_HEIGHT}px`;
-        el.style.height = `${item.duration * HOUR_HEIGHT - 8}px`;
-        el.style.left   = `calc(${index} * (100% / ${total}) + 6px)`;
-        el.style.width  = `calc((100% / ${total}) - 12px)`;
-        el.style.right  = "auto";
-
-        column.appendChild(el);
+        if (highlightedTaskId !== null) {
+          setTimeout(() => {
+            highlightedTaskId = null;
+            renderCalendar();
+          }, 3000);
+        }
+        column.appendChild(taskItem);
       });
     });
   }
@@ -265,6 +284,7 @@ function renderWeekView() {
   renderWeekHeader(weekDates);
   renderWeekHours();
   createWeekTimeSlots(weekDates);
+  renderBlockedTimeSlots();
   renderWeeklyTasks(weekDates);
   renderWeeklySummary(weekDates);
 }
@@ -280,8 +300,49 @@ function renderWeekHours() {
   }
 }
 
-function _fmtH(hora) {
-  const h = Math.floor(hora);
-  const m = Math.round((hora - h) * 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+function renderBlockedTimeSlots() {
+  const columns = document.querySelectorAll(".week-day-column");
+
+  blockedTimeSlots.forEach(block => {
+    columns.forEach((column, dayIndex) => {
+      if (!block.repeatEveryDay && Number(block.day) !== dayIndex) return;
+
+      const startHour = Number(block.startHour);
+      const duration = Number(block.duration);
+      const endHour = startHour + duration;
+      const visibleEndHour = Math.min(endHour, 24);
+      const visibleDuration = visibleEndHour - startHour;
+
+      if (visibleDuration > 0) {
+        createBlockedElement(column, block, startHour, visibleDuration);
+      }
+
+      if (endHour > 24) {
+        const nextDayIndex = (dayIndex + 1) % 7;
+        const nextColumn = columns[nextDayIndex];
+
+        if (nextColumn) {
+          const remainingDuration = endHour - 24;
+          createBlockedElement(nextColumn, block, 0, remainingDuration);
+        }
+      }
+    });
+  });
+}
+
+function createBlockedElement(column, block, startHour, duration) {
+  const blockElement = document.createElement("div");
+  blockElement.classList.add("blocked-time-slot");
+
+  const endHour = startHour + duration;
+
+  blockElement.style.top = `${startHour * HOUR_HEIGHT}px`;
+  blockElement.style.height = `${duration * HOUR_HEIGHT}px`;
+
+  blockElement.innerHTML = `
+    <strong>${block.title}</strong>
+    <span>${String(startHour).padStart(2, "0")}:00 - ${String(endHour).padStart(2, "0")}:00</span>
+  `;
+
+  column.appendChild(blockElement);
 }

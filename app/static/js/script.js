@@ -247,5 +247,6 @@ document.addEventListener("click", () => {
 });
 
 loadYearOptions();
+loadTasksFromBackend();
 
 renderCalendar();

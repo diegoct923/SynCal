@@ -23,6 +23,7 @@ WiCal permite al estudiante registrar y gestionar tareas académicas por WhatsAp
 | Mensajería | Twilio (WhatsApp Sandbox) |
 | LLM | Anthropic Claude Haiku |
 | Autenticación | Google OAuth 2.0 |
+| Tiempo real | Flask-SocketIO |
 | Túnel local | ngrok |
 | Frontend | HTML + CSS + JavaScript |
 
@@ -32,7 +33,7 @@ WiCal permite al estudiante registrar y gestionar tareas académicas por WhatsAp
 
 ```
 WiCal/
-├── main.py                        # Punto de entrada Flask
+├── main.py                        # Punto de entrada Flask + arranque del scheduler
 ├── config/
 │   └── config.py                  # URL base de ngrok, credenciales Google OAuth
 ├── schema.sql                     # Schema completo de la BD
@@ -42,6 +43,9 @@ WiCal/
 │
 ├── app/
 │   ├── __init__.py                # Factory de Flask, registro de rutas
+│   ├── extensions.py              # Instancia de SocketIO
+│   ├── sockets.py                 # Handlers de conexión WebSocket
+│   ├── events.py                  # Funciones para emitir eventos a clientes
 │   │
 │   ├── routes/
 │   │   ├── webhook.py             # Entrada de mensajes WhatsApp (Twilio)
@@ -49,10 +53,7 @@ WiCal/
 │   │   ├── api.py                 # API REST para el calendario web
 │   │   ├── login.py               # Sirve la página de login con Google
 │   │   ├── callback.py            # Callback de Google OAuth, maneja sesión Flask
-│   │   ├── registro.py            # Registro de username tras primer login
-│   │   ├── reagendar_tarea.py     # Reagenda tarea y replanifica sesiones (WhatsApp)
-│   │   ├── completar_tarea.py     # Marca tarea como completada (WhatsApp)
-│   │   └── borrar_tarea.py        # Elimina tarea y sus sesiones (WhatsApp)
+│   │   └── registro.py            # Registro de username tras primer login
 │   │
 │   ├── services/
 │   │   └── service.py             # Lógica de negocio (orquesta storage + scheduler)
@@ -75,12 +76,15 @@ WiCal/
 │       └── twilio_client.py       # Cliente Twilio + auto-config de webhook
 │
 ├── scheduler/
-│   └── scheduler.py               # Motor de planificación automática de sesiones
+│   ├── scheduler.py               # Motor de planificación + recordatorios
+│   ├── manejo_de_bloques.py       # Carga y merge de bloques horarios
+│   └── disponibilidad.py          # Verificación de disponibilidad grupal
 │
 └── static/
     ├── js/
     │   ├── config.js              # BASE_URL del backend
     │   ├── api.js                 # Funciones fetch hacia la API REST
+    │   ├── socket.js              # Cliente WebSocket (Socket.IO)
     │   ├── utils.js               # Utilidades de fecha, formato y touch
     │   ├── tasks.js               # Array de tareas, helpers, carga desde backend
     │   ├── monthView.js           # Vista mensual
@@ -96,7 +100,7 @@ WiCal/
     │   ├── month.css              # Estilos vista mensual
     │   ├── week.css               # Estilos vista semanal
     │   ├── components.css         # Menú, modales, scrollbar
-    │   └── responsive.css         # Media queries
+    │   └── responsive.css         # Media queries (incluye vista mobile)
     │
     ├── logo_wical.png
     └── background.png
@@ -106,23 +110,27 @@ WiCal/
 
 ## Base de datos
 
-```sql
-usuario              -- Usuarios registrados (tel, username, email, google_id)
-tarea                -- Tareas académicas (nombre, deadline, tipo, status, es_grupal)
-subtareas            -- Sesiones de estudio generadas por el scheduler
-grupo                -- Grupos de trabajo (nombre, creador_tel)
-grupo_usuario        -- Relación muchos a muchos entre grupos y usuarios
-sesiones             -- States UUID para autenticación del calendario web
-sesion_conversacion  -- Contexto de conversación activa por usuario en WhatsApp
-horarios_bloqueados  -- Rutina del usuario (bloques de tiempo no disponibles)
-```
+### Tablas
+
+| Tabla | Descripción |
+|---|---|
+| `usuario` | Usuarios registrados |
+| `tarea` | Tareas académicas |
+| `subtareas` | Sesiones de estudio generadas por el scheduler |
+| `grupo` | Grupos de trabajo |
+| `grupo_usuario` | Relación muchos a muchos entre grupos y usuarios |
+| `sesiones` | States UUID para autenticación del calendario web |
+| `sesion_conversacion` | Contexto de conversación activa por usuario en WhatsApp |
+| `horarios_bloqueados` | Rutina del usuario (bloques de tiempo no disponibles) |
+
+---
 
 ### Tipos de tarea
 
 | Tipo | Planificación automática | Duración base por sesión |
 |---|---|---|
 | `EXAMEN` | Sí | 3 horas |
-| `TAREA` | Sí | 2 horas |
+| `TAREA` | Sí | 1.5 horas |
 | `PRACTICO` | No | — |
 
 ### Estados de tarea
@@ -147,15 +155,13 @@ Al registrar o reagendar una tarea de tipo `EXAMEN` o `TAREA`, el scheduler gene
 
 ### Tipos de bloqueo
 
-El scheduler distingue dos tipos de bloqueos al calcular los slots disponibles:
+**Bloques blandos** (`horarios_bloqueados`): representan la rutina del usuario. La sesión **se puede partir** en tramos alrededor de ellos.
 
-**Bloques blandos** (`horarios_bloqueados`): representan la rutina del usuario (dormir, comer, descanso). La sesión **se puede partir** en tramos alrededor de ellos — por ejemplo, estudiar 2h antes del almuerzo y 1h después.
-
-**Bloques duros** (subtareas ya agendadas): representan sesiones de otras tareas ya planificadas. La sesión **no se puede partir** — si hay conflicto, se busca el siguiente hueco disponible en días posteriores.
+**Bloques duros** (subtareas ya agendadas): la sesión **no se puede partir** — si hay conflicto, se busca el siguiente hueco disponible.
 
 ### Bloques de rutina por defecto
 
-Si el usuario no configura sus propios bloques, se aplican los siguientes:
+Los bloques con `usuario_tel = NULL` y `dia_semana = NULL` aplican a todos los usuarios y todos los días:
 
 | Horario | Motivo |
 |---|---|
@@ -166,13 +172,21 @@ Si el usuario no configura sus propios bloques, se aplican los siguientes:
 | 18:00 – 22:00 | Clases |
 | 23:00 – 00:00 | Cierre del día |
 
-Los bloques por defecto se almacenan con `telefono = NULL` y `dia_semana = NULL` para que apliquen a todos los usuarios y todos los días.
-
 ---
 
 ## Grupos de trabajo
 
-Los grupos permiten compartir tareas entre integrantes. Solo el creador del grupo puede agregar tareas grupales. Al agendar una tarea grupal a una hora determinada, el sistema verifica que todos los integrantes tengan ese horario libre. Si hay conflicto, sugiere el próximo hueco disponible en común dentro de los siguientes 14 días.
+Los grupos permiten compartir tareas entre integrantes. Solo el creador puede agregar tareas grupales. Al agendar una tarea grupal, el sistema verifica que todos los integrantes tengan ese horario libre. Si hay conflicto, sugiere el próximo hueco disponible en común dentro de los siguientes 14 días.
+
+---
+
+## Sistema de notificaciones
+
+El scheduler corre en un thread separado y envía dos tipos de notificaciones por WhatsApp:
+
+**Resumen diario** — todos los días a las 8:00 AM con todas las tareas y sesiones de estudio del día.
+
+**Recordatorio puntual** — X minutos antes de cada tarea o sesión, configurable por usuario (`minutos_anticipacion_notificacion`, default 15 min, rango 5–120 min).
 
 ---
 
@@ -190,6 +204,7 @@ Los grupos permiten compartir tareas entre integrantes. Solo el creador del grup
 | Ver calendario | `Calendario`, `Ver calendario` |
 | Crear grupo | `Crear grupo Redes 2, integrantes: user1, user2` |
 | Tarea grupal | `Añadir tarea grupal parcial el 10 de junio a las 16:00` → elegir grupo |
+| Configurar anticipación | `Configurar anticipación 30 minutos` |
 
 ---
 
@@ -197,16 +212,16 @@ Los grupos permiten compartir tareas entre integrantes. Solo el creador del grup
 
 El calendario web es accesible vía link generado por WhatsApp con un `state` UUID de sesión. Incluye:
 
-- **Vista mensual**: muestra las tareas con color según tipo (EXAMEN = rojo, TAREA = naranja, PRACTICO = azul, Completada = verde). Las tareas grupales se identifican con el ícono 👥.
-- **Vista semanal**: muestra tareas posicionadas por hora, con soporte para sesiones de estudio partidas en múltiples tramos. Muestra franjas bloqueadas de rutina.
-- **Drag & drop**: reagendar tareas arrastrándolas a otro día/hora, con replanificación automática de sesiones.
-- **Menú contextual** (click derecho / long press en móvil): editar nombre, cambiar fecha/hora, cambiar prioridad, completar, cambiar tipo grupal/individual o eliminar tarea.
-- **Gestor de franjas bloqueadas**: agregar y eliminar bloques de horario personal desde la vista semanal.
+- **Vista mensual y semanal**: tareas posicionadas por hora con color según tipo. Las tareas grupales se identifican con 👥.
+- **Vista mobile**: interfaz adaptada para dispositivos móviles.
+- **Sesiones de estudio**: bloques generados por el scheduler visibles en la vista semanal, con soporte para sesiones partidas en múltiples tramos.
+- **Drag & drop**: reagendar tareas arrastrándolas, con replanificación automática de sesiones.
+- **Menú contextual**: editar nombre, cambiar fecha/hora, cambiar prioridad, completar, cambiar tipo grupal/individual o eliminar tarea.
+- **Gestor de franjas bloqueadas**: agregar y eliminar bloques de horario personal.
+- **Tiempo real**: actualizaciones instantáneas via WebSockets — crear, completar, reagendar o eliminar tareas se refleja sin recargar la página.
 - **Resumen semanal**: cantidad de tareas, carga por día y tip de estudio.
 
 ### Autenticación del calendario
-
-El acceso al calendario requiere autenticación con Google. El flujo es:
 
 ```
 Usuario pide calendario por WhatsApp
@@ -217,8 +232,6 @@ Usuario pide calendario por WhatsApp
 → Sesión Flask activa → accede al calendario
 ```
 
-El `state` UUID se usa para identificar al usuario durante el flujo de autenticación. Una vez autenticado, la sesión Flask mantiene el acceso activo en el browser.
-
 ---
 
 ## Endpoints
@@ -226,10 +239,7 @@ El `state` UUID se usa para identificar al usuario durante el flujo de autentica
 ### WhatsApp
 | Método | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/webhook` | Recibe mensajes de WhatsApp via Twilio |
-| `POST` | `/reagendar_tarea` | Reagenda tarea y replanifica sesiones |
-| `POST` | `/completar_tarea` | Marca tarea como `COMPLETADA` |
-| `POST` | `/borrar_tarea` | Elimina tarea y sus sesiones |
+| `POST` | `/webhook` | Recibe y procesa mensajes de WhatsApp via Twilio |
 
 ### Autenticación
 | Método | Ruta | Descripción |
@@ -250,6 +260,7 @@ El `state` UUID se usa para identificar al usuario durante el flujo de autentica
 | `POST` | `/api/tasks/nombre` | Actualiza nombre de tarea |
 | `POST` | `/api/tasks/prioridad` | Actualiza tipo/prioridad de tarea |
 | `POST` | `/api/tasks/grupal` | Actualiza flag grupal de tarea |
+| `GET` | `/api/tasks/blocked-slots` | Obtiene franjas bloqueadas del usuario |
 
 Todos los endpoints de la API reciben `state` en el body o query param y lo validan antes de operar.
 
@@ -259,7 +270,7 @@ Todos los endpoints de la API reciben `state` en el body o query param y lo vali
 
 ### Requisitos
 
-- Python 3.14+
+- Python 3.12 (eventlet no es compatible con 3.14+, usar threading)
 - PostgreSQL 16+
 - Cuenta Twilio con número de WhatsApp (sandbox disponible)
 - ngrok
@@ -316,7 +327,7 @@ chmod +x run.sh
 ./run.sh
 ```
 
-Ambos scripts levantan Flask en el puerto 5000, inician ngrok y configuran el webhook de Twilio automáticamente.
+Ambos scripts levantan Flask en el puerto 5000, inician ngrok y configuran el webhook de Twilio automáticamente. El scheduler de notificaciones arranca automáticamente en un thread separado.
 
 ### Configuración de Google OAuth
 
@@ -325,9 +336,3 @@ Ambos scripts levantan Flask en el puerto 5000, inician ngrok y configuran el we
 3. Application type: **Web application**
 4. Authorized redirect URIs: `https://<tu-url-ngrok>/callback`
 5. Copiar `Client ID` y `Client Secret` al `.env`
-
----
-
-## Variables de configuración
-
-`config/config.py` contiene la `BASE_URL` que se usa para generar el link del calendario en los mensajes de WhatsApp y los redirects de OAuth. Esta URL se actualiza automáticamente al ejecutar el script de inicio via `scripts/auto_config.py`.

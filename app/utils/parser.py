@@ -164,7 +164,7 @@ def extract_time(text: str):
     return None
 
 
-    #limpiar nombre de tarea 
+#limpiar nombre de tarea 
 
 def clean_task_title(text: str) -> str:
    # remover conectores comunes
@@ -226,13 +226,18 @@ def parse_intent(text) -> dict:
     text = text.lower()
     text = normalize(text)
 
+    if any(x in text for x in ["/ayuda"]):
+        return {"type": "HELP"}
     if any(x in text for x in ["!multi"]):
         return {"type": "MULTI"}
     
     if any(x in text for x in ["actualizar", "reagendar", "cambiar", "mover"]):
         return {"type": "MOVE_TASK"}
+        
+    if any(x in text for x in ["tarea grupal", "añadir grupal", "agregar grupal"]):
+        return {"type": "ADD_GROUP_TASK"}
 
-    if any(x in text for x in ["agregar", "anadir","añadir", "crear", "parcial", "entrega", "hacer", "tengo", "examen"]):
+    if any(x in text for x in ["agregar", "anadir", "añadir", "parcial", "entrega", "hacer", "tengo", "examen"]):
         return {"type": "ADD"}
 
     if any(x in text for x in ["ver tareas del día", "ver tareas del dia", "mis tareas de hoy", "listar tareas hoy", "listar tareas del dia", "listar tareas del día", "ver tareas hoy", "ver tareas de hoy"]):
@@ -249,6 +254,12 @@ def parse_intent(text) -> dict:
 
     if any(x in text for x in ["eliminar tarea", "eliminar tareas", "eliminar", "borrar tarea", "borrar tareas", "sacar tarea" ]):
         return {"type": "DELETE"}
+
+    if any(x in text for x in ["crear grupo", "armar grupo", "nuevo grupo", "formar grupo", "materializar grupo", "haya grupo" ]):
+        return {"type": "CREW"}
+
+    if any(x in text for x in ["configurar anticipación", "configurar notificaciones", "anticipacion de recordatorio", "configurar anticipacion de recordatorio", "anticipacion", "configurar recordatorio"]):
+        return {"type": "SET_ANTICIPACION_NOTIFICACIONES"}
 
     return {"type": "UNKNOWN"}
 
@@ -292,4 +303,51 @@ def parse_task_data(msg) -> dict:
             "deadline": deadline.isoformat(),
         }
     }
-    
+
+
+def parse_grupo_data(msg):
+    match = re.search(
+        r'(?:crear|nuevo)\s+grupo\s+(.+?)\s*,\s*integrantes?\s*:(.+)',
+        msg,
+        re.IGNORECASE
+    )
+    if not match:
+        return {
+            "ok": False,
+            "error": """Formato inválido. Usá: 'Crear grupo "nombre", integrantes: user1, user2'"""
+        }
+
+    nombre_grupo = match.group(1).strip()
+    usernames_raw = match.group(2)
+    usernames = [u.strip().lower() for u in usernames_raw.split(",") if u.strip()]
+
+    if not usernames:
+        return {
+            "ok": False,
+            "error": "Especificá al menos un integrante."
+        }
+
+    return {
+        "ok": True,
+        "data": {
+            "nombre": nombre_grupo,
+            "usernames": usernames
+        }
+    }
+
+
+
+def parse_anticipacion(msg):
+    match = re.search(r'(\d+)\s*(?:minutos?|mins?|m)', normalize(msg))
+    if not match:
+        return {
+            "ok": False,
+            "error": "No encontré los minutos. Usá: 'Configurar anticipación 30 minutos'"
+        }
+    minutos = int(match.group(1))
+    if minutos < 5 or minutos > 120:
+        return {
+            "ok": False,
+            "error": "La anticipación debe estar entre 5 y 120 minutos."
+        }
+    return {"ok": True, "data": {"minutos": minutos}}

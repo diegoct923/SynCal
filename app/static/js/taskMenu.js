@@ -3,12 +3,17 @@ function openTaskMenu(taskId, x, y) {
   if (!task) return;
 
   selectedTaskId = taskId;
+  taskMenuTitle.textContent = task.title;
 
-  if (task.priority === "completada") {
-    completeTaskBtn.textContent = "Marcar como no completada";
-  } else {
-    completeTaskBtn.textContent = "Marcar como completada";
-  }
+  completeTaskBtn.textContent =
+    task.priority === "completada"
+      ? "Marcar como no completada"
+      : "Marcar como completada";
+
+  toggleGroupTaskBtn.textContent = task.isGroup
+    ? "Cambiar a individual"
+    : "Cambiar a grupal";
+
 
   if (currentView === "week") {
     viewTaskWeekBtn.classList.add("hidden");
@@ -18,9 +23,26 @@ function openTaskMenu(taskId, x, y) {
 
   taskMenu.classList.remove("hidden");
 
+  if (isTouchDevice()) {
+    taskMenu.classList.add("task-menu-touch");
+    taskMenu.style.left = "50%";
+    taskMenu.style.top = "50%";
+    taskMenu.style.transform = "translate(-50%, -50%)";
+
+    taskMenu.style.pointerEvents = "none";
+
+    setTimeout(() => {
+      taskMenu.style.pointerEvents = "auto";
+    }, 50);
+
+    return;
+  }
+
+  taskMenu.classList.remove("task-menu-touch");
+  taskMenu.style.transform = "none";
+
   const menuWidth = taskMenu.offsetWidth;
   const menuHeight = taskMenu.offsetHeight;
-
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
 
@@ -38,16 +60,45 @@ function openTaskMenu(taskId, x, y) {
   if (posX < 10) posX = 10;
   if (posY < 10) posY = 10;
 
-    taskMenu.style.left = `${posX}px`;
-    taskMenu.style.top = `${posY}px`;
+  taskMenu.style.left = `${posX}px`;
+  taskMenu.style.top = `${posY}px`;
 }
 
 function closeTaskMenu() {
   taskMenu.classList.add("hidden");
+  taskMenu.classList.remove("task-menu-touch");
+  taskMenu.style.left = "";
+  taskMenu.style.top = "";
+  taskMenu.style.transform = "";
+  taskMenu.style.pointerEvents = "";
   selectedTaskId = null;
 }
 
-editTaskBtn.addEventListener("click", () => {
+taskMenuCloseBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeTaskMenu();
+});
+
+taskMenu.addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
+taskMenu.addEventListener("touchstart", (e) => {
+  e.stopPropagation();
+}, { passive: true });
+
+document.addEventListener("click", (e) => {
+  if (!taskMenu.classList.contains("hidden") && !taskMenu.contains(e.target)) {
+    closeTaskMenu();
+  }
+});
+
+
+editTaskBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
   if (selectedTaskId === null) return;
 
   const taskId = selectedTaskId;
@@ -57,15 +108,24 @@ editTaskBtn.addEventListener("click", () => {
   closeTaskMenu();
 
   openCustomModal(
-    "Cambiar nombre",
+    "Editar tarea",
     `
       <label for="taskTitleInput">Nombre de la tarea</label>
       <input id="taskTitleInput" type="text" value="${task.title}">
+
+      <label for="taskTypeSelect">Tipo de tarea</label>
+      <select id="taskTypeSelect">
+        <option value="individual" ${!task.isGroup ? "selected" : ""}>Individual</option>
+        <option value="group" ${task.isGroup ? "selected" : ""}>Grupal</option>
+      </select>
+
       <div class="custom-modal-message" id="taskTitleError"></div>
     `,
-    () => {
+    async () => {
       const input = document.getElementById("taskTitleInput");
+      const typeSelect = document.getElementById("taskTypeSelect");
       const error = document.getElementById("taskTitleError");
+
       const value = input.value.trim();
 
       if (!value) {
@@ -74,13 +134,29 @@ editTaskBtn.addEventListener("click", () => {
       }
 
       task.title = value;
-      renderCalendar();
-      closeCustomModal();
+      task.isGroup = typeSelect.value === "group";
+      closeCustomModal()
+      try {
+          await fetch(`${BASE_URL}/api/tasks/nombre`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  task_id: taskId,
+                  title: value,
+                  state: getState()
+              })
+          });
+          //location.reload();
+      } catch(err) {
+          console.error("Error al actualizar nombre:", err);
+      }       
     }
   );
 });
 
-changeDateTaskBtn.addEventListener("click", () => {
+changeDateTaskBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   if (selectedTaskId === null) return;
 
   const taskId = selectedTaskId;
@@ -136,26 +212,34 @@ changeDateTaskBtn.addEventListener("click", () => {
       task.date = newDate;
       task.startHour = newHour;
       task.duration = newDuration;
-      fetch('/reagendar_tarea', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          task_id: taskId, 
-          deadline: `${newDate}T${String(newHour).padStart(2, "0")}:00:00`,
-          state: state
-        })
-      }).then(() => {
-        location.reload();
-      }).catch(err => console.error('Error al reagendar:', err));
 
       closeCustomModal();
 
-    
+      (async () => {
+          try {
+              await fetch(`${BASE_URL}/api/tasks/reagendar`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                      task_id: taskId,
+                      deadline: `${newDate}T${String(newHour).padStart(2, "0")}:00:00`,
+                      state: getState()
+                  })
+              });
+              //location.reload();
+          } catch(err) {
+              console.error("Error al reagendar:", err);
+          }
+      })(); 
+
+      closeCustomModal();
     }
   );
 });
 
-changePriorityTaskBtn.addEventListener("click", () => {
+changePriorityTaskBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   if (selectedTaskId === null) return;
 
   const taskId = selectedTaskId;
@@ -175,7 +259,7 @@ changePriorityTaskBtn.addEventListener("click", () => {
         <option value="completada" ${task.priority === "completada" ? "selected" : ""}>Completada</option>
       </select>
     `,
-    () => {
+    async () => {
       const select = document.getElementById("taskPrioritySelect");
       const value = select.value;
 
@@ -188,13 +272,31 @@ changePriorityTaskBtn.addEventListener("click", () => {
       }
 
       task.priority = value;
-      renderCalendar();
+
+      closeCustomModal();
+
+      try {
+          await fetch(`${BASE_URL}/api/tasks/prioridad`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  task_id: taskId,
+                  priority: value,
+                  state: getState()
+              })
+          });
+          //location.reload();
+      } catch(err) {
+          console.error("Error al actualizar prioridad:", err);
+      }
       closeCustomModal();
     }
   );
 });
 
-completeTaskBtn.addEventListener("click", () => {
+completeTaskBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   if (selectedTaskId === null) return;
 
   const task = tasks.find(t => t.id === selectedTaskId);
@@ -206,19 +308,25 @@ completeTaskBtn.addEventListener("click", () => {
   } else {
     task.previousPriority = task.priority;
     task.priority = "completada";
-
-    fetch('/completar_tarea', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task_id: selectedTaskId, state: state })
-    }).catch(err => console.error('Error al completar:', err));
   }
 
-  renderCalendar();
-  closeTaskMenu();
+  try {
+    await fetch(`${BASE_URL}/api/tasks/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        state: getState(),
+        task_id: task.id
+      })
+    });
+    //location.reload();
+  } catch(err) {
+    console.error("Error al completar:", err);
+  }
+
 });
 
-deleteTaskBtn.addEventListener("click", () => {
+deleteTaskBtn.addEventListener("click", (e) => {
   if (selectedTaskId === null) return;
 
   const taskIdToDelete = selectedTaskId;
@@ -231,14 +339,26 @@ deleteTaskBtn.addEventListener("click", () => {
       <p>¿Seguro que querés eliminar esta tarea?</p>
       <p class="custom-modal-message">Esta acción no se puede deshacer.</p>
     `,
-    () => {
-      fetch('/borrar_tarea', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_id: taskIdToDelete, state: state })
-      }).then(() => {
-        location.reload();
-      }).catch(err => console.error('Error al borrar:', err));
+    async () => {
+      const index = tasks.findIndex(t => t.id === taskIdToDelete);
+
+      if (index !== -1) {
+          tasks.splice(index, 1);
+          try {
+            await fetch(`${BASE_URL}/api/tasks/delete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    task_id: taskIdToDelete,
+                    state: getState()
+                })
+            });
+            //location.reload();
+        } catch(err) {
+          console.error("Error al borrar:", err);
+        }
+        
+      }
 
       closeCustomModal();
     },
@@ -247,13 +367,9 @@ deleteTaskBtn.addEventListener("click", () => {
   );
 });
 
-document.addEventListener("click", (e) => {
-  if (!taskMenu.contains(e.target)) {
-    closeTaskMenu();
-  }
-});
-
-viewTaskWeekBtn.addEventListener("click", () => {
+viewTaskWeekBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   if (selectedTaskId === null) return;
 
   const task = tasks.find(t => t.id === selectedTaskId);
@@ -269,4 +385,21 @@ viewTaskWeekBtn.addEventListener("click", () => {
 
   closeTaskMenu();
   renderCalendar();
+});
+
+toggleGroupTaskBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  if (selectedTaskId === null) return;
+
+  const task = tasks.find(t => t.id === selectedTaskId);
+  if (!task) return;
+
+  task.isGroup = !task.isGroup;
+
+  // FETCH: actualizar tipo grupal/individual
+
+  renderCalendar();
+  closeTaskMenu();
 });

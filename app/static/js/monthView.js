@@ -3,6 +3,11 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
   day.classList.add("calendar-day");
   day.dataset.date = fullDate;
 
+  if (isToday(fullDate)) {
+    day.classList.add("today");
+  }
+
+
   if (isOtherMonth) {
     day.classList.add("other-month");
   }
@@ -20,8 +25,16 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
 
   visibleTasks.forEach(task => {
     const taskItem = document.createElement("div");
-    taskItem.classList.add("task-item", getPriorityClass(task.priority, task.status));
-    taskItem.textContent = task.title;
+    taskItem.classList.add("task-item", getPriorityClass(task.priority));
+
+    taskItem.innerHTML = `
+      ${task.isGroup ? '<span class="group-task-icon">👥</span>' : ""}
+      <span>${task.title}</span>
+    `;
+    //FIN NUEVO
+    taskItem.draggable = true;
+    taskItem.dataset.taskId = task.id;
+    // taskItem.textContent = task.title;
     taskItem.draggable = true;
     taskItem.dataset.taskId = task.id;
 
@@ -43,6 +56,22 @@ function createDayCell(dayNumber, fullDate, isOtherMonth = false) {
         e.clientY
       );
     });
+
+
+    if (isTouchDevice()) {
+      taskItem.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const touch = e.changedTouches[0];
+
+        openTaskMenu(
+          Number(task.id),
+          touch.clientX,
+          touch.clientY
+        );
+      }, { passive: false });
+    }
 
     taskList.appendChild(taskItem);
   });
@@ -147,4 +176,146 @@ function renderMonthView() {
 
     calendarGrid.appendChild(createDayCell(day, fullDate, true));
   }
+
+  // NUEVO VISTA MOVIL
+  renderMobileMonthView();
+}
+
+// NUEVO VISTA MOVIL
+
+let mobileSelectedDate = null;
+
+function renderMobileMonthView() {
+  const mobileGrid = document.getElementById("mobileCalendarGrid");
+
+  if (!mobileGrid) return;
+
+  mobileGrid.innerHTML = "";
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  if (!mobileSelectedDate) {
+    mobileSelectedDate = formatDate(year, month, new Date().getDate());
+  }
+
+  const firstDayOfMonth = new Date(year, month, 1);
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+
+  let startDay = firstDayOfMonth.getDay();
+  startDay = startDay === 0 ? 6 : startDay - 1;
+
+  const daysInMonth = lastDayOfMonth.getDate();
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+  for (let i = startDay; i > 0; i--) {
+    const dayNumber = prevMonthLastDay - i + 1;
+    const date = new Date(year, month - 1, dayNumber);
+    appendMobileDay(mobileGrid, date, true);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    appendMobileDay(mobileGrid, date, false);
+  }
+
+  const totalCells = mobileGrid.children.length;
+  const remainingCells = 42 - totalCells;
+
+  for (let day = 1; day <= remainingCells; day++) {
+    const date = new Date(year, month + 1, day);
+    appendMobileDay(mobileGrid, date, true);
+  }
+
+  renderMobileSelectedDay();
+}
+
+function appendMobileDay(container, date, isOtherMonth) {
+  const fullDate = formatDate(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+
+  const day = document.createElement("button");
+  day.classList.add("mobile-day");
+
+  if (isOtherMonth) day.classList.add("other-month");
+  if (isToday(fullDate)) day.classList.add("today");
+  if (mobileSelectedDate === fullDate) day.classList.add("selected");
+
+  const dayTasks = getTasksForDate(fullDate).slice(0, 3);
+
+  day.innerHTML = `
+    <span class="mobile-day-number">${date.getDate()}</span>
+    <div class="mobile-task-bars">
+      ${dayTasks.map(task => `
+        <span class="mobile-task-bar ${getPriorityClass(task.priority)}"></span>
+      `).join("")}
+    </div>
+  `;
+
+  day.addEventListener("click", () => {
+    mobileSelectedDate = fullDate;
+    renderMobileMonthView();
+  });
+
+  container.appendChild(day);
+}
+
+function renderMobileSelectedDay() {
+  const selectedDateLabel = document.getElementById("mobileSelectedDate");
+  const selectedTaskList = document.getElementById("mobileSelectedTaskList");
+
+  if (!selectedDateLabel || !selectedTaskList) return;
+
+  const date = new Date(mobileSelectedDate + "T00:00:00");
+
+  selectedDateLabel.innerHTML = `
+    <span>${monthNames[date.getMonth()]} ${date.getDate()}</span>
+    <button type="button" class="mobile-add-selected-task-btn" id="mobileAddSelectedTaskBtn">+</button>
+  `;
+
+  const mobileAddSelectedTaskBtn = document.getElementById("mobileAddSelectedTaskBtn");
+
+  mobileAddSelectedTaskBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openCreateTaskModal(mobileSelectedDate, 9);
+  });
+
+  const tasksForDay = getTasksForDate(mobileSelectedDate);
+
+  if (tasksForDay.length === 0) {
+    selectedTaskList.innerHTML = `<p style="color:#777;">No hay tareas para este día.</p>`;
+    return;
+  }
+
+  selectedTaskList.innerHTML = "";
+
+tasksForDay.forEach(task => {
+  const taskElement = document.createElement("div");
+  taskElement.classList.add("mobile-task-detail");
+  taskElement.dataset.taskId = task.id;
+
+  taskElement.innerHTML = `
+    <div class="mobile-task-detail-marker ${getPriorityClass(task.priority)}"></div>
+    <div>
+      <strong>${task.isGroup ? "👥 " : ""}${task.title}</strong>
+      <span>${String(task.startHour).padStart(2, "0")}:00 - ${String(task.startHour + task.duration).padStart(2, "0")}:00</span>
+    </div>
+  `;
+
+  taskElement.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    openTaskMenu(
+      Number(task.id),
+      window.innerWidth / 2,
+      window.innerHeight / 2
+    );
+  });
+
+  selectedTaskList.appendChild(taskElement);
+});
 }

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WiCal — Elegí tu nombre de usuario</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f4f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #d8dde5;
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            color: #f57c20;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #1b2435;
+            text-align: center;
+        }
+
+        p {
+            font-size: 14px;
+            color: #6a768d;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        input {
+            width: 100%;
+            border: 2px solid #d8dde5;
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-size: 15px;
+            color: #1b2435;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #f57c20;
+            box-shadow: 0 0 0 3px rgba(245, 124, 32, 0.12);
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #9aa5b4;
+            margin-top: -12px;
+        }
+
+        .error {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d93025;
+            background: #fdecea;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        button {
+            width: 100%;
+            background: #f57c20;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #e06b10;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">WiCal</div>
+
+        <h2>Elegí tu nombre de usuario</h2>
+        <p>Tu nombre de usuario te identifica en WiCal y se usa para grupos colaborativos.</p>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/registro?state={{ state }}">
+            <input
+                type="text"
+                name="username"
+                placeholder="ej: un_nombre_muy_cool"
+                maxlength="30"
+                autocomplete="off"
+                autofocus
+            />
+            <span class="hint">Solo letras, números, puntos y guiones bajos. Entre 3 y 30 caracteres.</span>               
+
+            {% if error %}{% endif %}
+
+            <button type="submit" style="margin-top: 8px;">Continuar →</button>
+        </form>
+    </div>
+</body>
+</html>

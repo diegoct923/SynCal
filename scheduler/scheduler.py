@@ -1,9 +1,14 @@
 from app.integrations.twilio_client import send_whatsapp_message
 from app.storage.database import connect_db
-from app.storage.task_store import get_tasks
+from app.storage.task_store import get_tasks_day, get_sessions_day
+from app.storage.user_store import get_all_users, get_minutos_anticipacion_to_notify
+from app.utils.helpers import fmt
 from datetime import datetime, date, timedelta
 import schedule
+from scheduler.manejo_de_bloques import cargar_bloques, merge_bloques
 import time
+import threading
+
 
 
 
@@ -19,11 +24,7 @@ DURACION_BASE = {
 # ── 1. Régimen de sesiones ────────────────────────────────────────────────────
  
 def calcular_regimen(fecha_registro: date, deadline: date, tipo: str) -> tuple[list[date], float]:
-    """
-    Devuelve (fechas_candidatas, duracion_por_sesion).
-    La duración es el total de horas de estudio por sesión,
-    que puede estar distribuida en varios tramos si hay bloques de rutina en el medio.
-    """
+    
     duracion_base = DURACION_BASE.get(tipo)
     dias_restantes = (deadline - fecha_registro).days
  
@@ -57,96 +58,17 @@ def _generar_fechas(desde: date, hasta: date, paso: int) -> list[date]:
  
 # ── 2. Carga de bloques desde BD ──────────────────────────────────────────────
  
-def _cargar_bloques(telefono: str, fecha: date) -> tuple[list[tuple], list[tuple]]:
-    """
-    Devuelve (bloques_blandos, bloques_duros) para ese usuario y fecha.
- 
-    bloques_blandos: horarios_bloqueados (rutina del usuario).
-                      La sesión PUEDE partirse alrededor de estos.
- 
-    bloques_duros: subtareas ya agendadas.
-                      La sesión NO puede partirse, hay que buscar otro hueco.
-    """
-    dia_semana = fecha.weekday()
-    conn = connect_db()
-    try:
-        with conn.cursor() as cur:
- 
-            # Bloques blandos: defaults globales (telefono IS NULL, dia_semana IS NULL)
-            # más los específicos del usuario para ese día de la semana.
-            cur.execute(
-                """
-                SELECT hora_inicio, hora_fin
-                FROM squema1.horarios_bloqueados
-                WHERE (usuario_tel IS NULL OR usuario_tel = %s)
-                  AND (dia_semana IS NULL OR dia_semana = %s)
-                ORDER BY hora_inicio
-                """,
-                (telefono, dia_semana)
-            )
-            bloques_blandos = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
- 
-            # Bloques duros: subtareas ya agendadas ese día (de cualquier tarea).
-            cur.execute(
-                """
-                SELECT hora_inicio, hora_fin
-                FROM squema1.subtareas
-                WHERE usuario_tel = %s AND date = %s AND status != 'CANCELADA'
-                ORDER BY hora_inicio
-                """,
-                (telefono, fecha)
-            )
-            bloques_duros = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
- 
-    finally:
-        conn.close()
- 
-    return list(bloques_blandos), list(bloques_duros)
- 
- 
-def _merge_bloques(bloques: list[tuple]) -> list[tuple]:
-    """Fusiona bloques solapados y los devuelve ordenados."""
-    if not bloques:
-        return []
-    ordenados = sorted(bloques, key=lambda b: b[0])
-    merged = [list(ordenados[0])]
-    for inicio, fin in ordenados[1:]:
-        if inicio <= merged[-1][1]:
-            merged[-1][1] = max(merged[-1][1], fin)
-        else:
-            merged.append([inicio, fin])
-    return [tuple(b) for b in merged]
+
  
  
 # ── 3. Algoritmo para partir sesiones
  
 def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] | None:
-    """
-    Intenta encontrar tramos que sumen 'duracion' horas en el día dado.
+    
+    bloques_blandos, bloques_duros = cargar_bloques(telefono, fecha)
  
-    Reglas:
-      - Los bloques BLANDOS (horarios_bloqueados) se pueden saltar:
-        se acumula el tiempo antes y después del bloqueo.
-      - Los bloques DUROS (subtareas) no se pueden saltar:
-        si chocamos con uno, reseteamos el acumulado y empezamos de cero
-        desde después del bloque duro.
- 
-    Devuelve una lista de tramos [(inicio, fin), ...] que en total suman
-    la duración pedida, o None si el día no tiene tiempo suficiente.
- 
-    Ejemplo con EXAMEN (3h):
-      Huecos: 08:30→12:30 (4h) con bloqueo blando 10:00→10:30 en el medio
-      → tramos: [(8.5, 10.0), (10.5, 12.0)]  →  1.5h + 1.5h = 3h  
- 
-    Ejemplo con subtarea bloqueando:
-      Huecos: 08:30→10:00 libre, 10:00→11:00 SUBTAREA (duro), 11:00→14:00 libre
-      → el acumulado se resetea al tocar la subtarea
-      → se busca desde 11:00, encuentra 3h continuas hasta 14:00  
-    """
-    bloques_blandos, bloques_duros = _cargar_bloques(telefono, fecha)
- 
-    blandos_merged = _merge_bloques(bloques_blandos)
-    duros_merged   = _merge_bloques(bloques_duros)
+    blandos_merged = merge_bloques(bloques_blandos)
+    duros_merged   = merge_bloques(bloques_duros)
  
     # Línea de tiempo unificada con el tipo de cada bloque
     eventos = []
@@ -240,10 +162,7 @@ def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] 
  
 def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
                      tramos: list[tuple], sesion_grupo: int):
-    """
-    Inserta uno o más registros en subtareas para los tramos de una sesión.
-    Todos comparten el mismo sesion_grupo para poder agruparlos en el calendario.
-    """
+    
     with conn.cursor() as cur:
         for inicio, fin in tramos:
             duracion_tramo = fin - inicio
@@ -260,13 +179,7 @@ def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
 # ── 5. Orquestador principal ──────────────────────────────────────────────────
  
 def planificar_tarea(tarea_id: int) -> list[dict]:
-    """
-    Punto de entrada. Recibe el id de la tarea recién insertada,
-    calcula el régimen de sesiones y las agenda en squema1.subtareas.
- 
-    Devuelve la lista de sesiones agendadas para el mensaje de confirmación.
-    Cada sesión tiene: fecha, tramos [(inicio, fin)], duracion_total, sesion_grupo.
-    """
+    
     conn = connect_db()
     try:
         with conn.cursor() as cur:
@@ -340,25 +253,98 @@ def planificar_tarea(tarea_id: int) -> list[dict]:
 
 
 def check_reminders():
-    print("Chequeando tareas...")
+    print("[scheduler] Chequeando recordatorios...")
 
-    today = datetime.now().strftime("%d-%m")
+    users = get_all_users()
 
-    tasks = get_tasks() #type: ignore 
+    for tel in users:
+        tareas = get_tasks_day(tel)
+        sesiones = get_sessions_day(tel)
 
-    for task in tasks:
-        if task["date"] == today:
-            user = task["user"]
-            title = task["title"]
+        if not tareas and not sesiones:
+            continue
 
-            print(f"Enviando recordatorio a {user}...")
+        msg = "📅 *Recordatorio WiCal* — tareas de hoy:\n"
 
-            send_whatsapp_message(user, f"📅 Hoy tenés: {title}")
+        if tareas:
+            msg += "\n*Tareas:*\n"
+            for t in tareas:
+                hora = t["deadline"].strftime("%H:%M") if t["deadline"].hour or t["deadline"].minute else "Sin hora"
+                grupo = " 👥" if t["es_grupal"] else ""
+                msg += f"• {t['tipo']} {t['title']} — {hora}{grupo}\n"
+
+        if sesiones:
+            msg += "\n*Sesiones de estudio:*\n"
+            for s in sesiones:
+                msg += f"• 📚 {s['tarea_nombre']} — {fmt(s['hora_inicio'])} a {fmt(s['hora_fin'])}\n"
+
+        try:
+            send_whatsapp_message(f"whatsapp:+{tel}", msg)
+            print(f"[scheduler] Recordatorio enviado a {tel}")
+        except Exception as e:
+            print(f"[scheduler] Error enviando a {tel}: {e}")
+
+
+
+def check_upcoming_reminders():
+
+    print("[scheduler] Chequeando recordatorios puntuales...")
+
+    now = datetime.now()
+    users = get_all_users()
+
+    for tel in users:
+        minutos = get_minutos_anticipacion_to_notify(tel)
+        tareas  = get_tasks_day(tel)
+        sesiones = get_sessions_day(tel)
+
+        for t in tareas:
+            if not t["deadline"]:
+                continue
+            deadline = t["deadline"]
+            if not deadline.hour and not deadline.minute:
+                continue  # sin hora específica, no notificar
+
+            diff = (deadline.replace(tzinfo=None) - now).total_seconds() / 60
+            if abs(diff - minutos) <= 1:
+                msg = f"⏰ En {minutos} min: {t['tipo']} *{t['title']}*"
+                try:
+                    send_whatsapp_message(f"whatsapp:+{tel}", msg)
+                    print(f"[scheduler] Recordatorio puntual a {tel}: {t['title']}")
+                except Exception as e:
+                    print(f"[scheduler] Error: {e}")
+
+        for s in sesiones:
+            hora_inicio = s["hora_inicio"]
+            sesion_time = now.replace(
+                hour=int(hora_inicio),
+                minute=int((hora_inicio % 1) * 60),
+                second=0,
+                microsecond=0
+            )
+            diff = (sesion_time - now).total_seconds() / 60
+            if abs(diff - minutos) <= 1:
+                msg = f"⏰ En {minutos} min: sesión 📚 *{s['tarea_nombre']}* — {fmt(s['hora_inicio'])} a {fmt(s['hora_fin'])}"
+                try:
+                    send_whatsapp_message(f"whatsapp:+{tel}", msg)
+                    print(f"[scheduler] Recordatorio puntual a {tel}: {s['tarea_nombre']}")
+                except Exception as e:
+                    print(f"[scheduler] Error: {e}")
+
+
 
 def run_scheduler():
-    # cada 60 segundos (para pruebas)
-    schedule.every(60).seconds.do(check_reminders)
+    # Enviar todos los días a las 8:00 AM hora de Montevideo
+    schedule.every().day.at("08:00").do(check_reminders)
+    schedule.every(1).minutes.do(check_upcoming_reminders)
 
+    print("[scheduler] Corriendo, esperando las 8:00...")
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(30)
+
+
+def start_scheduler_thread():
+    thread = threading.Thread(target=run_scheduler, daemon=True)
+    thread.start()
+    print("[scheduler] Thread iniciado")

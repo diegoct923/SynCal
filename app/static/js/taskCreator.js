@@ -18,15 +18,23 @@ function openCreateTaskModal(defaultDate, defaultHour = 9) {
         <option value="baja">Baja - 1 hora</option>
       </select>
 
+      <label for="newTaskType">Tipo de tarea</label>
+      <select id="newTaskType">
+        <option value="individual">Individual</option>
+        <option value="group">Grupal</option>
+      </select>
+
       <div class="custom-modal-message" id="newTaskError"></div>
     `,
-    () => {
+
+    async () => {
       const titleInput = document.getElementById("newTaskTitle");
       const dateInput = document.getElementById("newTaskDate");
       const hourInput = document.getElementById("newTaskHour");
       const priorityInput = document.getElementById("newTaskPriority");
       const error = document.getElementById("newTaskError");
-
+      const typeInput = document.getElementById("newTaskType");
+      const isGroup = typeInput.value === "group";
       const title = titleInput.value.trim();
       const date = dateInput.value;
       const hour = Number(hourInput.value);
@@ -54,8 +62,11 @@ function openCreateTaskModal(defaultDate, defaultHour = 9) {
         return;
       }
 
-      createTask(title, date, hour, priority);
-      closeCustomModal();
+      const wasCreated = await createTask(title, date, hour, priority, isGroup);
+
+      if (wasCreated) {
+        closeCustomModal();
+      }
     },
     "Crear tarea"
   );

@@ -89,51 +89,76 @@ def detect_tipo(text: str) -> str:
 #Extraer fecha  
 
 def extract_date(text: str):
-
-    #patrones en que puede venir fecha  ej : añadir parcial matemáticas jueves 23 de abril
-    patterns = [ 
-        #ISO 8601 primero
+    patterns = [
         r'\b\d{4}[/-]\d{2}[/-]\d{2}\b',
-        
-        #combinaciones tipo "jueves 20 de abril"
+
         r'\b(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
-        
-        #"20 de abril"
+
         r'\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b',
-        
-        #15/04 o 15-04
+
         r'(?<!\d)\b\d{1,2}[/-]\d{1,2}\b(?!\d)',
 
-        #expresiones relativas
         r'\b(hoy|manana|pasado manana)\b',
 
-        #"jueves", "viernes", etc.
-        r'\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b'        
+        r'\b(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+\d{1,2}\b',
+
+        r'\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b'
     ]
 
     candidatos = []
-    #extraer todos los posibles fragmentos de fecha
+
     for pattern in patterns:
         matches = re.findall(pattern, text)
         for m in matches:
-            # re.findall puede devolver tuplas si hay grupos
             if isinstance(m, tuple):
                 m = " ".join(m)
 
             candidatos.append(m)
-    
-     #intentar parsear cada candidato
+
     for candidato in candidatos:
-        #parsear iso 8601 directo
         iso_match = re.fullmatch(r'(\d{4})[/-](\d{2})[/-](\d{2})', candidato)
         if iso_match:
             try:
-                return datetime(int(iso_match.group(1)), int(iso_match.group(2)), int(iso_match.group(3))).date()
+                return datetime(
+                    int(iso_match.group(1)),
+                    int(iso_match.group(2)),
+                    int(iso_match.group(3))
+                ).date()
             except ValueError:
                 continue
-        date = dateparser.parse(candidato, languages=["es"], settings={"RELATIVE_BASE": datetime.now()})
-        if date:
-            return date.date()
+
+        # Caso: "jueves 18"
+        weekday_day_match = re.fullmatch(
+            r'(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+(\d{1,2})',
+            candidato
+        )
+
+        if weekday_day_match:
+            day = int(weekday_day_match.group(2))
+            today = date.today()
+
+            for month_offset in range(13):
+                month = today.month + month_offset
+                year = today.year + (month - 1) // 12
+                month = ((month - 1) % 12) + 1
+
+                try:
+                    candidate_date = date(year, month, day)
+                except ValueError:
+                    continue
+
+                if candidate_date >= today:
+                    return candidate_date
+
+        parsed_date = dateparser.parse(
+            candidato,
+            languages=["es"],
+            settings={"RELATIVE_BASE": datetime.now()}
+        )
+
+        if parsed_date:
+            return parsed_date.date()
+
     return None
 
 #extraer hora

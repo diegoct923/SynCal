@@ -251,6 +251,16 @@
 //   }
 // ];
 
+function formatHour(hour) {
+  console.log("FORMAT HOUR", hour);
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+
+  const result = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  console.log("FORMAT RESULT:", result);
+  return result;
+}
+
 let tasks = [];
 let sessions = [];
 
@@ -285,23 +295,24 @@ async function loadTasksFromBackend() {
         };
     });
   
-  sessions = (data.sessions ?? []).map(s => {
-      return {
-          id: s.sesion_grupo,           // identificador de grupo de sesión
-          task_id: s.task_id,
-          date: s.date,
-          title: s.tarea_nombre,
-          priority: TIPO_TO_PRIORITY[s.tarea_tipo] ?? "baja",
-          previousPriority: null,
-          startHour: Math.floor(s.hora_inicio),
-          duration: s.hora_fin - s.hora_inicio,
-          isGroup: false,
-          isSession: true,              // flag para distinguirlas de tareas
-          status: s.status ?? null,
-          tramos: s.tramos ?? []
+  sessions = (data.sessions ?? []).map((s, index) => {
+        return {
+            id: `session-${s.task_id}-${s.sesion_grupo}`,
+            task_id: s.task_id,
+            date: s.date,
+            title: s.tarea_nombre,
+            priority: TIPO_TO_PRIORITY[s.tarea_tipo] ?? "baja",
+            previousPriority: null,
+            startHour: s.hora_inicio,  
+            duration: s.hora_fin - s.hora_inicio,
+            isGroup: false,
+            isSession: true,
+            status: s.status ?? null,
+            tramos: s.tramos ?? []
         };
     });
     const blocks = await apiGetBlockedSlots(getState());
+    console.log("bloques recibidos:", blocks);
     blockedTimeSlots = blocks.map(block => ({
       id: block.id,
       title: block.title ?? "Bloqueado",
@@ -504,39 +515,64 @@ async function createTask(title, date, startHour, priority, isGroup = false, for
 // NUEVO
 let blockedTimeSlots = [];
 
-function getNextBlockedSlotId() {
-  if (blockedTimeSlots.length === 0) return 1;
-  return Math.max(...blockedTimeSlots.map(slot => slot.id)) + 1;
-}
+//function getNextBlockedSlotId() {
+  //if (blockedTimeSlots.length === 0) return 1;
+  //return Math.max(...blockedTimeSlots.map(slot => slot.id)) + 1;
+//}
 
-function createBlockedSlot(day, startHour, duration, title) {
+async function createBlockedSlot(day, startHour, duration, title) {
 
-  // FETCH: POST → crear franja bloqueada
+  try {
+      const result = await fetch(`${BASE_URL}/api/blocked-slots/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                day,
+                startHour,
+                duration,
+                title: title || "Bloqueado",
+                state: getState()
+            })
+      });
+      const data = await result.json();     
 
-  blockedTimeSlots.push({
-    id: getNextBlockedSlotId(),
-    title: title || "Bloqueado",
-    day: Number(day),
-    startHour: Number(startHour),
-    duration: Number(duration),
-    repeatEveryDay: false
-  });
-
-  renderCalendar();
-}
-
-function deleteBlockedSlot(slotId) {
-
-  // FETCH: DELETE → eliminar franja bloqueada, no definido aun
-
-  const index = blockedTimeSlots.findIndex(slot => slot.id === slotId);
-
-  if (index !== -1) {
-    blockedTimeSlots.splice(index, 1);
-    renderCalendar();
-    openBlockedSlotsModal();
+      blockedTimeSlots.push({
+          id: data.id,
+          title: title || "Bloqueado",
+          day: Number(day),
+          startHour: Number(startHour),
+          duration: Number(duration),
+          repeatEveryDay: false
+      });
+      renderCalendar();
+    } catch(err) {
+        console.error("Error al crear bloqueo:", err);
   }
 }
+
+async function deleteBlockedSlot(slotId) {
+
+    try{
+        await fetch(`${BASE_URL}/api/blocked-slots/delete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                slot_id: slotId,
+                state: getState()
+            })
+        });
+
+      const index = blockedTimeSlots.findIndex(slot => slot.id === slotId);
+      if (index !== -1) {
+        blockedTimeSlots.splice(index, 1);
+        renderCalendar();
+        openBlockedSlotsModal();
+      }
+    } catch(err) {
+          console.error("Error al borrar bloqueo:", err);
+      }
+
+  } 
 
 function getBlockedSlotConflict(dayIndex, startHour, duration) {
   const taskStart = Number(startHour);

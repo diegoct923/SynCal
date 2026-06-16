@@ -11,27 +11,47 @@ DURACION_BASE = {
 
 
 def cargar_bloques(telefono: str, fecha: date) -> tuple[list[tuple], list[tuple]]:
-    
     dia_semana = fecha.weekday()
     conn = connect_db()
     try:
         with conn.cursor() as cur:
- 
-            # Bloques blandos: defaults globales (telefono IS NULL, dia_semana IS NULL)
-            # más los específicos del usuario para ese día de la semana.
+
+            # Verificar si el usuario tiene bloqueos propios para este día
             cur.execute(
                 """
-                SELECT hora_inicio, hora_fin
-                FROM squema1.horarios_bloqueados
-                WHERE (usuario_tel IS NULL OR usuario_tel = %s)
-                  AND (dia_semana IS NULL OR dia_semana = %s)
-                ORDER BY hora_inicio
+                SELECT COUNT(*) FROM squema1.horarios_bloqueados
+                WHERE usuario_tel = %s
+                  AND (dia_semana = %s OR dia_semana IS NULL)
                 """,
                 (telefono, dia_semana)
             )
+            tiene_propios_hoy = cur.fetchone()[0] > 0   #type: ignore
+
+            if tiene_propios_hoy:
+                cur.execute(
+                    """
+                    SELECT hora_inicio, hora_fin
+                    FROM squema1.horarios_bloqueados
+                    WHERE usuario_tel = %s
+                      AND (dia_semana = %s OR dia_semana IS NULL)
+                    ORDER BY hora_inicio
+                    """,
+                    (telefono, dia_semana)
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT hora_inicio, hora_fin
+                    FROM squema1.horarios_bloqueados
+                    WHERE usuario_tel IS NULL
+                      AND (dia_semana = %s OR dia_semana IS NULL)
+                    ORDER BY hora_inicio
+                    """,
+                    (dia_semana,)
+                )
+
             bloques_blandos = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
- 
-            # Bloques duros: subtareas ya agendadas ese día (de cualquier tarea).
+
             cur.execute(
                 """
                 SELECT hora_inicio, hora_fin
@@ -42,11 +62,11 @@ def cargar_bloques(telefono: str, fecha: date) -> tuple[list[tuple], list[tuple]
                 (telefono, fecha)
             )
             bloques_duros = [(float(ini), float(fin)) for ini, fin in cur.fetchall()]
- 
+
     finally:
         conn.close()
- 
-    return list(bloques_blandos), list(bloques_duros)
+
+    return bloques_blandos, bloques_duros
  
  
 def merge_bloques(bloques: list[tuple]) -> list[tuple]:

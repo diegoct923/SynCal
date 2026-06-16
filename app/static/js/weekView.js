@@ -119,7 +119,13 @@ function renderWeeklyTasks(weekDates) {
         };
       })
       .sort((a, b) => a.startHour - b.startHour);
-
+    if (dayDate === weekDateStrings[0]) console.log("lunes tasks detalle:", dayTasks.map(t => ({
+  title: t.title,
+  startHour: t.startHour,
+  duration: t.duration,
+  endHour: t.endHour
+})));
+    console.log("sessions:", sessions.filter(s => s.date === weekDateStrings[0]));
     const groups = [];
 
     dayTasks.forEach(task => {
@@ -159,8 +165,8 @@ function renderWeeklyTasks(weekDates) {
               <div class="task-text">
                 <span class="task-title">${task.title}</span>
                 <span class="task-time">
-                  ${String(task.startHour).padStart(2, "0")}:00 - ${String(task.endHour).padStart(2, "0")}:00
-                </span>
+                  ${formatHour(task.startHour)} - ${formatHour(task.endHour)}
+                </span>               
               </div>
             </strong>
         `;
@@ -330,6 +336,16 @@ function renderBlockedTimeSlots() {
   });
 }
 
+function formatHour(hour) {
+  console.log("FORMAT HOUR", hour);
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+
+  const result = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  console.log("FORMAT RESULT:", result);
+  return result;
+}
+
 function createBlockedElement(column, block, startHour, duration) {
   const blockElement = document.createElement("div");
   blockElement.classList.add("blocked-time-slot");
@@ -341,7 +357,7 @@ function createBlockedElement(column, block, startHour, duration) {
 
   blockElement.innerHTML = `
     <strong>${block.title}</strong>
-    <span>${String(startHour).padStart(2, "0")}:00 - ${String(endHour).padStart(2, "0")}:00</span>
+    <span>${formatHour(startHour)} - ${formatHour(endHour)}</span>
   `;
 
   column.appendChild(blockElement);

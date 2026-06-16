@@ -12,7 +12,7 @@ echo "Levantando ngrok..."
 kitty bash -c "ngrok http 5000; exec bash" &
 
 echo "Configurando webhook automaticamente..."
-python auto_config.py
+python /home/santi/Documents/repos/Syncal/scripts/auto_config.py
 
 echo "==================================="
 echo "Sistema iniciado"

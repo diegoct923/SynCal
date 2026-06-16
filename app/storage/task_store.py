@@ -162,7 +162,33 @@ def get_tasks_to_complete(tel):
         raise e
     finally:
         conn.close()
-   
+
+
+
+def get_tasks_numbered(tel):
+    tasks = get_tasks_to_complete(tel)
+
+    return [
+        {
+            **task,
+            "numero_usuario": i
+        }
+        for i, task in enumerate(tasks, start=1)
+    ]
+
+
+def get_real_task_id_from_user_number(tel, numero_usuario):
+    tasks = get_tasks_numbered(tel)
+
+    index = int(numero_usuario) - 1
+
+    if index < 0 or index >= len(tasks):
+        return None
+
+    return tasks[index]["id"]
+
+
+
 def completar_tarea(task_id, usuario_tel):
     conn = connect_db()
 
@@ -337,6 +363,53 @@ def get_sessions_day(tel):
                 }
                 for r in rows
             ]
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+    
+
+
+#horarios bloqueados
+def crear_horario_bloqueado(tel, dia_semana, hora_inicio, hora_fin, title):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO squema1.horarios_bloqueados
+                    (usuario_tel, dia_semana, hora_inicio, hora_fin, title)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (tel, dia_semana, hora_inicio, hora_fin, title)
+            )
+            result = cur.fetchone()
+        conn.commit()
+        return result[0]  #type: ignore
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+def borrar_horario_bloqueado(slot_id, tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM squema1.horarios_bloqueados
+                WHERE id = %s AND usuario_tel = %s
+                """,
+                (slot_id, tel)
+            )
+            if cur.rowcount == 0:
+                return False
+        conn.commit()
+        return True
     except Exception as e:
         conn.rollback()
         raise e

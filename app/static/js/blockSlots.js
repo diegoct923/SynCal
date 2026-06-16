@@ -1,10 +1,21 @@
+function formatHour(hour) {
+  
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+
+  const result = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  
+  return result;
+}
+
+
 function openBlockedSlotsModal() {
   const dayOptions = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
   const currentBlocksHTML = blockedTimeSlots.map(slot => `
     <div class="blocked-slot-row">
       <strong>${slot.repeatEveryDay ? "Todos los días" : dayOptions[slot.day]}</strong>
-      <span>${slot.title} - ${String(slot.startHour).padStart(2, "0")}:00 a ${String(slot.startHour + slot.duration).padStart(2, "0")}:00</span>
+      <span>${slot.title} - ${formatHour(slot.startHour)} a ${formatHour(slot.startHour + slot.duration)}</span>
       <button type="button" onclick="deleteBlockedSlot(${slot.id})">Eliminar</button>
     </div>
   `).join("");

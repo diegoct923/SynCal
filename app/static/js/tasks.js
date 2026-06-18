@@ -312,19 +312,34 @@ async function loadTasksFromBackend() {
         };
     });
     const blocks = await apiGetBlockedSlots(getState());
-    console.log("bloques recibidos:", blocks);
-    blockedTimeSlots = blocks.map(block => ({
-      id: block.id,
-      title: block.title ?? "Bloqueado",
-      startHour: parseFloat(block.hora_inicio),
-      duration: parseFloat(block.hora_fin) - parseFloat(block.hora_inicio),
-      dia_semana: block.dia_semana,           // null = todos los días
-      repeatEveryDay: block.dia_semana === null,
-      day: block.dia_semana ?? null
-    }));
+
+    blockedTimeSlots = blocks
+      .filter(b => !b.oculto)
+      .map(block => ({
+        id: block.id,
+        title: block.title ?? "Bloqueado",
+        startHour: parseFloat(block.hora_inicio),
+        duration: parseFloat(block.hora_fin) - parseFloat(block.hora_inicio),
+        dia_semana: block.dia_semana,
+        repeatEveryDay: block.dia_semana === null,
+        day: block.dia_semana ?? null
+      }));
+
+    hiddenBlockedSlots = blocks
+      .filter(b => b.oculto)
+      .map(block => ({
+        id: block.id,
+        title: block.title ?? "Bloqueado",
+        startHour: parseFloat(block.hora_inicio),
+        duration: parseFloat(block.hora_fin) - parseFloat(block.hora_inicio),
+        dia_semana: block.dia_semana,
+        repeatEveryDay: block.dia_semana === null,
+        day: block.dia_semana ?? null
+      }));    
   
 
-  renderCalendar();
+    renderCalendar();
+
 }
 
 function getTasksForDate(dateString) {
@@ -514,6 +529,7 @@ async function createTask(title, date, startHour, priority, isGroup = false, for
 
 // NUEVO
 let blockedTimeSlots = [];
+let hiddenBlockedSlots = [];
 
 //function getNextBlockedSlotId() {
   //if (blockedTimeSlots.length === 0) return 1;
@@ -550,29 +566,23 @@ async function createBlockedSlot(day, startHour, duration, title) {
   }
 }
 
-async function deleteBlockedSlot(slotId) {
+async function toggleBlockedSlot(slotId) {
+  try {
+    await fetch(`${BASE_URL}/api/blocked-slots/delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slot_id: slotId,
+        state: getState()
+      })
+    });
 
-    try{
-        await fetch(`${BASE_URL}/api/blocked-slots/delete`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                slot_id: slotId,
-                state: getState()
-            })
-        });
-
-      const index = blockedTimeSlots.findIndex(slot => slot.id === slotId);
-      if (index !== -1) {
-        blockedTimeSlots.splice(index, 1);
-        renderCalendar();
-        openBlockedSlotsModal();
-      }
-    } catch(err) {
-          console.error("Error al borrar bloqueo:", err);
-      }
-
-  } 
+    await loadTasksFromBackend();  // recarga blockedTimeSlots y hiddenBlockedSlots actualizados
+    openBlockedSlotsModal();
+  } catch(err) {
+    console.error("Error al alternar bloqueo:", err);
+  }
+}
 
 function getBlockedSlotConflict(dayIndex, startHour, duration) {
   const taskStart = Number(startHour);

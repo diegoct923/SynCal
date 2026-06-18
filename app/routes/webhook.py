@@ -161,12 +161,12 @@ def webhook():
             if sesiones:
                 msg += "\n\nNuevas sesiones de estudio:"
                 for s in sesiones:
-                    if len(s["tramos"]) == 1:
-                        ini, fin = s["tramos"][0]
-                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {fmt(ini)} a {fmt(fin)}"
+                    if len(s["tramos"]) == 1:                                                           #type:ignore
+                        ini, fin = s["tramos"][0]                                                       #type:ignore
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {fmt(ini)} a {fmt(fin)}"       #type:ignore
                     else:
-                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
-                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {tramos_str}"
+                        tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])         #type:ignore
+                        msg += f"\n• {s['fecha'].strftime('%a %d/%m')} - {tramos_str}"                  #type:ignore
 
             response.message(msg)
 

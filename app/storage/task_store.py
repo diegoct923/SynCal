@@ -395,21 +395,67 @@ def crear_horario_bloqueado(tel, dia_semana, hora_inicio, hora_fin, title):
         conn.close()
 
 
-def borrar_horario_bloqueado(slot_id, tel):
+def toggle_horario_bloqueado(slot_id, tel):
     conn = connect_db()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                DELETE FROM squema1.horarios_bloqueados
-                WHERE id = %s AND usuario_tel = %s
-                """,
-                (slot_id, tel)
+                "SELECT usuario_tel FROM squema1.horarios_bloqueados WHERE id = %s",
+                (slot_id,)
             )
-            if cur.rowcount == 0:
-                return False
-        conn.commit()
-        return True
+            row = cur.fetchone()
+            if not row:
+                return {"status": "not_found"}
+
+            es_propio = row[0] == tel
+
+            if es_propio:
+                cur.execute(
+                    """
+                    DELETE FROM squema1.horarios_bloqueados
+                    WHERE id = %s AND usuario_tel = %s
+                    """,
+                    (slot_id, tel)
+                )
+                if cur.rowcount == 0:
+                    return {"status": "not_found"}
+
+                conn.commit()
+                return {"status": "deleted"}
+
+            else:
+                cur.execute(
+                    """
+                    SELECT 1 FROM squema1.horarios_bloqueados_excluidos
+                    WHERE usuario_tel = %s AND horario_id = %s
+                    """,
+                    (tel, slot_id)
+                )
+                ya_excluido = cur.fetchone() is not None
+
+                if ya_excluido:
+                    cur.execute(
+                        """
+                        DELETE FROM squema1.horarios_bloqueados_excluidos
+                        WHERE usuario_tel = %s AND horario_id = %s
+                        """,
+                        (tel, slot_id)
+                    )
+                    nuevo_estado_oculto = False
+                else:
+                    cur.execute(
+                        """
+                        INSERT INTO squema1.horarios_bloqueados_excluidos (usuario_tel, horario_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING
+                        """,
+                        (tel, slot_id)
+                    )
+                    nuevo_estado_oculto = True
+
+                conn.commit()
+                return {"status": "toggled", "oculto": nuevo_estado_oculto}
+
     except Exception as e:
         conn.rollback()
         raise e

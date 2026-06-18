@@ -32,3 +32,15 @@ socket.on("task_deleted", (data) => {
 socket.on("disconnect", () => {
     console.log("[socket] desconectado");
 });
+
+socket.on("blocked_slot_created", (slot) => {
+    loadTasksFromBackend();
+});
+
+socket.on("blocked_slot_toggled", (data) => {
+    loadTasksFromBackend();
+});
+
+socket.on("blocked_slot_deleted", (data) => {
+    loadTasksFromBackend();
+});

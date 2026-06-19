@@ -1,13 +1,62 @@
+function formatHour(hour) {
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+  const result = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return result;
+}
+
+function getUniqueBlocksForDisplay(list) {
+  const grouped = {};
+
+  list.forEach(slot => {
+    if (!grouped[slot.id]) {
+      grouped[slot.id] = { ...slot, days: [] };
+    }
+    if (slot.repeatEveryDay) {
+      grouped[slot.id].repeatEveryDay = true;
+    } else {
+      grouped[slot.id].days.push(slot.day);
+    }
+  });
+
+  return Object.values(grouped).map(slot => {
+    if (!slot.repeatEveryDay && slot.days.length === 7) {
+      slot.repeatEveryDay = true;
+    }
+    return slot;
+  });
+}
+
 function openBlockedSlotsModal() {
   const dayOptions = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-  const currentBlocksHTML = blockedTimeSlots.map(slot => `
-    <div class="blocked-slot-row">
-      <strong>${slot.repeatEveryDay ? "Todos los días" : dayOptions[slot.day]}</strong>
-      <span>${slot.title} - ${String(slot.startHour).padStart(2, "0")}:00 a ${String(slot.startHour + slot.duration).padStart(2, "0")}:00</span>
-      <button type="button" onclick="deleteBlockedSlot(${slot.id})">Eliminar</button>
-    </div>
-  `).join("");
+  const uniqueActive = getUniqueBlocksForDisplay(blockedTimeSlots);
+  const uniqueHidden = getUniqueBlocksForDisplay(hiddenBlockedSlots);
+
+  const isOwnBlock = (slot) => blockedTimeSlots.find(b => b.id === slot.id)?.usuario_tel != null
+    || !uniqueHidden.find(h => h.id === slot.id) && slot.day !== null && !slot.repeatEveryDay && false; // marcador, ver nota abajo
+
+  const currentBlocksHTML = uniqueActive.map(slot => {
+    const label = slot.repeatEveryDay ? "Todos los días" : slot.days.map(d => dayOptions[d]).join(", ");
+    return `
+      <div class="blocked-slot-row">
+        <strong>${label}</strong>
+        <span>${slot.title} - ${formatHour(slot.startHour)} a ${formatHour(slot.startHour + slot.duration)}</span>
+        <button type="button" onclick="toggleBlockedSlot(${slot.id})">Eliminar</button>
+      </div>
+    `;
+  }).join("");
+
+  const hiddenBlocksHTML = uniqueHidden.map(slot => {
+    const label = slot.repeatEveryDay ? "Todos los días" : slot.days.map(d => dayOptions[d]).join(", ");
+    return `
+      <div class="blocked-slot-row blocked-slot-row-hidden">
+        <strong>${label}</strong>
+        <span>${slot.title} - ${formatHour(slot.startHour)} a ${formatHour(slot.startHour + slot.duration)}</span>
+        <button type="button" onclick="toggleBlockedSlot(${slot.id})">Reactivar</button>
+      </div>
+    `;
+  }).join("");
 
   openCustomModal(
     "Editar franjas bloqueadas",
@@ -40,6 +89,14 @@ function openBlockedSlotsModal() {
       <div class="blocked-slot-list">
         ${currentBlocksHTML || "<p>No hay franjas bloqueadas.</p>"}
       </div>
+
+      ${uniqueHidden.length > 0 ? `
+        <hr>
+        <h3>Bloqueos ocultos</h3>
+        <div class="blocked-slot-list blocked-slot-list-hidden">
+          ${hiddenBlocksHTML}
+        </div>
+      ` : ""}
     `,
     () => {
       const title = document.getElementById("blockedTitleInput").value.trim();

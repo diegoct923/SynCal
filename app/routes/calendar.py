@@ -104,7 +104,11 @@ def obtener_tareas_db(phone):
 def calendar():
     limpiar_states_vencidos()
     state = request.args.get("state")
+    print("STATE RECIBIDO:", state)
+    
     tel = obtener_telefono_por_state(state)
+    print("TEL OBTENIDO:", tel)
+
 
     if not tel:
         return "Sesión inválida", 403

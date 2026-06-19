@@ -162,7 +162,33 @@ def get_tasks_to_complete(tel):
         raise e
     finally:
         conn.close()
-   
+
+
+
+def get_tasks_numbered(tel):
+    tasks = get_tasks_to_complete(tel)
+
+    return [
+        {
+            **task,
+            "numero_usuario": i
+        }
+        for i, task in enumerate(tasks, start=1)
+    ]
+
+
+def get_real_task_id_from_user_number(tel, numero_usuario):
+    tasks = get_tasks_numbered(tel)
+
+    index = int(numero_usuario) - 1
+
+    if index < 0 or index >= len(tasks):
+        return None
+
+    return tasks[index]["id"]
+
+
+
 def completar_tarea(task_id, usuario_tel):
     conn = connect_db()
 
@@ -337,6 +363,99 @@ def get_sessions_day(tel):
                 }
                 for r in rows
             ]
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+    
+
+
+#horarios bloqueados
+def crear_horario_bloqueado(tel, dia_semana, hora_inicio, hora_fin, title):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO squema1.horarios_bloqueados
+                    (usuario_tel, dia_semana, hora_inicio, hora_fin, title)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (tel, dia_semana, hora_inicio, hora_fin, title)
+            )
+            result = cur.fetchone()
+        conn.commit()
+        return result[0]  #type: ignore
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+def toggle_horario_bloqueado(slot_id, tel):
+    conn = connect_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT usuario_tel FROM squema1.horarios_bloqueados WHERE id = %s",
+                (slot_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return {"status": "not_found"}
+
+            es_propio = row[0] == tel
+
+            if es_propio:
+                cur.execute(
+                    """
+                    DELETE FROM squema1.horarios_bloqueados
+                    WHERE id = %s AND usuario_tel = %s
+                    """,
+                    (slot_id, tel)
+                )
+                if cur.rowcount == 0:
+                    return {"status": "not_found"}
+
+                conn.commit()
+                return {"status": "deleted"}
+
+            else:
+                cur.execute(
+                    """
+                    SELECT 1 FROM squema1.horarios_bloqueados_excluidos
+                    WHERE usuario_tel = %s AND horario_id = %s
+                    """,
+                    (tel, slot_id)
+                )
+                ya_excluido = cur.fetchone() is not None
+
+                if ya_excluido:
+                    cur.execute(
+                        """
+                        DELETE FROM squema1.horarios_bloqueados_excluidos
+                        WHERE usuario_tel = %s AND horario_id = %s
+                        """,
+                        (tel, slot_id)
+                    )
+                    nuevo_estado_oculto = False
+                else:
+                    cur.execute(
+                        """
+                        INSERT INTO squema1.horarios_bloqueados_excluidos (usuario_tel, horario_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING
+                        """,
+                        (tel, slot_id)
+                    )
+                    nuevo_estado_oculto = True
+
+                conn.commit()
+                return {"status": "toggled", "oculto": nuevo_estado_oculto}
+
     except Exception as e:
         conn.rollback()
         raise e

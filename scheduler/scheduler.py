@@ -56,12 +56,11 @@ def _generar_fechas(desde: date, hasta: date, paso: int) -> list[date]:
     return fechas
  
  
-# ── 2. Carga de bloques desde BD ──────────────────────────────────────────────
- 
+
 
  
  
-# ── 3. Algoritmo para partir sesiones
+# ── 2. Algoritmo para partir sesiones
  
 def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] | None:
     
@@ -158,7 +157,7 @@ def calcular_tramos(telefono: str, fecha: date, duracion: float) -> list[tuple] 
     return tramos
  
  
-# ── 4. Insertar tramos de una sesión ─────────────────────────────────────────
+# ── 3. Insertar tramos de una sesión ─────────────────────────────────────────
  
 def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
                      tramos: list[tuple], sesion_grupo: int):
@@ -176,7 +175,7 @@ def _insertar_sesion(conn, tarea_id: int, telefono: str, fecha: date,
             )
  
  
-# ── 5. Orquestador principal ──────────────────────────────────────────────────
+# ── 4. Orquestador principal ──────────────────────────────────────────────────
  
 def planificar_tarea(tarea_id: int) -> list[dict]:
     
@@ -214,7 +213,7 @@ def planificar_tarea(tarea_id: int) -> list[dict]:
     try:
         for fecha in fechas_candidatas:
             tramos = calcular_tramos(telefono, fecha, duracion)
- 
+
             if tramos is None:
                 # Sin espacio ese día → buscar el día siguiente hasta el deadline
                 fecha_alt = fecha + timedelta(days=1)
@@ -224,24 +223,24 @@ def planificar_tarea(tarea_id: int) -> list[dict]:
                         fecha = fecha_alt
                         break
                     fecha_alt += timedelta(days=1)
- 
+
             if tramos is None:
                 print(f"[scheduler] Sin hueco para sesión {sesion_grupo} de tarea {tarea_id}")
                 sesion_grupo += 1
                 continue
- 
+
             _insertar_sesion(conn, tarea_id, telefono, fecha, tramos, sesion_grupo)
- 
+            conn.commit()  # ← commit después de cada sesión para que _cargar_bloques la vea
+
             sesiones_agendadas.append({
                 "fecha":          fecha,
                 "tramos":         tramos,
                 "duracion_total": duracion,
                 "sesion_grupo":   sesion_grupo,
             })
- 
+
             sesion_grupo += 1
- 
-        conn.commit()
+
     except Exception as e:
         conn.rollback()
         raise e

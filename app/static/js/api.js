@@ -132,6 +132,6 @@ async function apiGetBlockedSlots(state) {
   if (!response.ok) {
     throw new Error("No se pudieron obtener las franjas bloqueadas");
   }
-
+  
   return await response.json();
 }

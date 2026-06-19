@@ -4,6 +4,7 @@ const prevMonthBtn = document.getElementById("prevMonth");
 const nextMonthBtn = document.getElementById("nextMonth");
 const monthViewBtn = document.getElementById("monthViewBtn");
 const weekViewBtn = document.getElementById("weekViewBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
 const monthLayout = document.getElementById("monthLayout");
 const weekLayout = document.getElementById("weekLayout");
@@ -172,6 +173,10 @@ weekViewBtn.addEventListener("click", () => {
   monthViewBtn.classList.remove("active");
 
   renderCalendar();
+});
+
+logoutBtn.addEventListener("click", () => {
+  window.location.href = `/logout?state=${getState()}`;
 });
 
 weekDetailsBtn.addEventListener("click", () => {

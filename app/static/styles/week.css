@@ -484,3 +484,71 @@
 
   color: #7f1d1d;
 }
+
+.blocked-slot-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #eef1f5;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1b2435;
+}
+
+.blocked-slot-row strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: #6a768d;
+}
+
+.blocked-slot-row span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1b2435;
+}
+
+.blocked-slot-row button {
+  border: none;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #d44e51;
+  color: white;
+  align-self: flex-end;
+}
+
+.blocked-slot-row button:hover {
+  opacity: 0.85;
+}
+
+.blocked-slot-row-hidden {
+  background: #e9edf3;
+  opacity: 0.6;
+}
+
+.blocked-slot-row-hidden strong,
+.blocked-slot-row-hidden span {
+  color: #6a768d;
+}
+
+.blocked-slot-row-hidden button {
+  background: #2f6de0;
+  color: white;
+}
+
+.blocked-slot-list::-webkit-scrollbar,
+.blocked-slot-list-hidden::-webkit-scrollbar {
+  width: 6px;
+}
+
+.blocked-slot-list::-webkit-scrollbar-thumb,
+.blocked-slot-list-hidden::-webkit-scrollbar-thumb {
+  background: #d8dde5;
+  border-radius: 999px;
+}

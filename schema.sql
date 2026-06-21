@@ -2,18 +2,18 @@
 -- PostgreSQL database dump
 --
 
-\restrict NVOZjYoWCb8IcNmq1RTQoMaiMabrrx5Nq38vYn7gSBic2DR1d20FCgok0Trw2WQ
+--\restrict YHyI0Nlxu005TveFs1OUbAOraXyIPh7Yh6tvijtlRvLgi02mbpl5qEZKyN74qMu
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
--- Dumped by pg_dump version 18.3
+-- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+--SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false); 
+SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -94,6 +94,18 @@ CREATE TABLE squema1.horarios_bloqueados (
 
 
 ALTER TABLE squema1.horarios_bloqueados OWNER TO postgres;
+
+--
+-- Name: horarios_bloqueados_excluidos; Type: TABLE; Schema: squema1; Owner: postgres
+--
+
+CREATE TABLE squema1.horarios_bloqueados_excluidos (
+    usuario_tel character varying NOT NULL,
+    horario_id integer NOT NULL
+);
+
+
+ALTER TABLE squema1.horarios_bloqueados_excluidos OWNER TO postgres;
 
 --
 -- Name: horarios_bloqueados_id_seq; Type: SEQUENCE; Schema: squema1; Owner: postgres
@@ -325,6 +337,14 @@ ALTER TABLE ONLY squema1.grupo_usuario
 
 
 --
+-- Name: horarios_bloqueados_excluidos horarios_bloqueados_excluidos_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.horarios_bloqueados_excluidos
+    ADD CONSTRAINT horarios_bloqueados_excluidos_pkey PRIMARY KEY (usuario_tel, horario_id);
+
+
+--
 -- Name: horarios_bloqueados horarios_bloqueados_pkey; Type: CONSTRAINT; Schema: squema1; Owner: postgres
 --
 
@@ -420,6 +440,14 @@ ALTER TABLE ONLY squema1.grupo_usuario
 
 
 --
+-- Name: horarios_bloqueados_excluidos horarios_bloqueados_excluidos_horario_id_fkey; Type: FK CONSTRAINT; Schema: squema1; Owner: postgres
+--
+
+ALTER TABLE ONLY squema1.horarios_bloqueados_excluidos
+    ADD CONSTRAINT horarios_bloqueados_excluidos_horario_id_fkey FOREIGN KEY (horario_id) REFERENCES squema1.horarios_bloqueados(id);
+
+
+--
 -- Name: sesion_conversacion sesion_conversacion_telefono_fkey; Type: FK CONSTRAINT; Schema: squema1; Owner: postgres
 --
 
@@ -459,9 +487,18 @@ ALTER TABLE ONLY squema1.usuario
     ADD CONSTRAINT usuario_grupo_fk FOREIGN KEY (grupo_id) REFERENCES squema1.grupo(id);
 
 
+INSERT INTO squema1.horarios_bloqueados
+(usuario_tel, dia_semana, hora_inicio, hora_fin, title)
+VALUES
+(NULL, NULL, 0.0, 8.5, 'Sueño'),
+(NULL, NULL, 12.5, 13.0, 'Almuerzo'),
+(NULL, NULL, 17.0, 17.5, 'Tarde'),
+(NULL, NULL, 18.0, 22.0, 'Estudio'),
+(NULL, NULL, 23.0, 24.0, 'Noche');
+
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NVOZjYoWCb8IcNmq1RTQoMaiMabrrx5Nq38vYn7gSBic2DR1d20FCgok0Trw2WQ
+--\unrestrict YHyI0Nlxu005TveFs1OUbAOraXyIPh7Yh6tvijtlRvLgi02mbpl5qEZKyN74qMu
 

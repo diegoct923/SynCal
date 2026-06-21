@@ -1,0 +1,5 @@
+schedule==1.2.2
+twilio==9.10.4
+psycopg2-binary==2.9.11
+python-dotenv==1.2.2
+pytz==2026.1.post1

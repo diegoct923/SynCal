@@ -34,5 +34,5 @@ def planificar_tarea_task(task_id, phone):
             tramos_str = " + ".join(f"{fmt(i)} a {fmt(f)}" for i, f in s["tramos"])
             msg += f"\n• {s['fecha'].strftime('%a %d/%m')} — {tramos_str}"
 
-    send_whatsapp_message(phone, msg)
+    send_whatsapp_message(f"whatsapp:+{phone}", msg)
     sio.emit("task_updated", {"id": task_id, "sesiones": sesiones_serializadas}, room=phone)

@@ -115,6 +115,19 @@ services:
       - web
       - whatsapp
 
+  ngrok:
+    image: ngrok/ngrok:latest
+    env_file:
+      - .env
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command:
+      - "http"
+      - "--url=unastonished-arlie-interligamentous.ngrok-free.dev"
+      - "nginx:80"
+    depends_on:
+      - nginx
+
 volumes:
   postgres_data:
   whatsapp_data:

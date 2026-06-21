@@ -1,338 +1,334 @@
 # WiCal
 
-> Sistema de organización de tareas académicas con planificación automática vía WhatsApp y calendario web.
+> Asistente de organizacion academica con gestion por WhatsApp, calendario web, planificacion automatica de sesiones de estudio y recordatorios.
 
 ## Integrantes
 
-Martín Bentura, Diego Cabrera, Santiago Martínez, Agustina Pereyra, Mateo Yavitz.
+Martin Bentura, Diego Cabrera, Santiago Martinez, Agustina Pereyra, Mateo Yavitz.
 
----
+## Descripcion
 
-## Descripción
+WiCal permite registrar, consultar y administrar tareas academicas desde WhatsApp y verlas en un calendario web autenticado con Google. Para tareas de tipo `EXAMEN` o `TAREA`, el sistema genera sesiones de estudio automaticamente y las muestra en el calendario junto con las tareas originales.
 
-WiCal permite al estudiante registrar y gestionar tareas académicas por WhatsApp y visualizarlas en un calendario web interactivo. Para tareas de tipo **EXAMEN** o **TAREA**, el sistema genera automáticamente sesiones de estudio distribuidas desde el día del registro hasta el deadline, respetando la rutina del usuario y evitando solapamientos con otras sesiones. El sistema también soporta **grupos de trabajo** con tareas compartidas entre integrantes, verificando disponibilidad horaria de todos los miembros antes de agendar.
+El proyecto actualmente esta separado en servicios Docker:
 
----
+- `web`: aplicacion Flask del calendario, login, registro, API REST y Socket.IO.
+- `whatsapp`: webhook Flask que recibe mensajes de Twilio/WhatsApp.
+- `celery_worker`: worker Celery que planifica sesiones de estudio en segundo plano.
+- `notifications`: scheduler de recordatorios y resumen diario por WhatsApp.
+- `postgres`: base de datos PostgreSQL.
+- `rabbitmq`: broker para Celery y cola de mensajes de Socket.IO.
+- `nginx`: proxy inverso; expone la app en `http://localhost:8080` y deriva `/webhook` al servicio de WhatsApp.
+- `ngrok`: tunel publico hacia Nginx para integracion con Twilio.
 
-## Stack tecnológico
+## Stack
 
-| Capa | Tecnología |
+| Capa | Tecnologia |
 |---|---|
-| Backend | Python 3.14 + Flask |
+| Backend | Python 3.11 + Flask |
+| Calendario web | HTML, CSS, JavaScript |
+| Tiempo real | Flask-SocketIO + RabbitMQ |
+| Tareas asincronas | Celery |
 | Base de datos | PostgreSQL 16 |
-| Mensajería | Twilio (WhatsApp Sandbox) |
+| Mensajeria | Twilio WhatsApp |
 | LLM | Anthropic Claude Haiku |
-| Autenticación | Google OAuth 2.0 |
-| Tiempo real | Flask-SocketIO |
-| Túnel local | ngrok |
-| Frontend | HTML + CSS + JavaScript |
-
----
+| Autenticacion | Google OAuth 2.0 |
+| Proxy / despliegue local | Nginx, Docker Compose, ngrok |
 
 ## Estructura del proyecto
 
-```
-WiCal/
-├── main.py                        # Punto de entrada Flask + arranque del scheduler
-├── config/
-│   └── config.py                  # URL base de ngrok, credenciales Google OAuth
-├── schema.sql                     # Schema completo de la BD
-├── requirements.txt
-├── run.bat                        # Script de inicio (Windows)
-├── run.sh                         # Script de inicio (Linux)
-│
-├── app/
-│   ├── __init__.py                # Factory de Flask, registro de rutas
-│   ├── extensions.py              # Instancia de SocketIO
-│   ├── sockets.py                 # Handlers de conexión WebSocket
-│   ├── events.py                  # Funciones para emitir eventos a clientes
-│   │
-│   ├── routes/
-│   │   ├── webhook.py             # Entrada de mensajes WhatsApp (Twilio)
-│   │   ├── calendar.py            # Sirve el calendario web
-│   │   ├── api.py                 # API REST para el calendario web
-│   │   ├── login.py               # Sirve la página de login con Google
-│   │   ├── callback.py            # Callback de Google OAuth, maneja sesión Flask
-│   │   └── registro.py            # Registro de username tras primer login
-│   │
-│   ├── services/
-│   │   └── service.py             # Lógica de negocio (orquesta storage + scheduler)
-│   │
-│   ├── storage/
-│   │   ├── database.py            # Conexión psycopg2 a PostgreSQL
-│   │   ├── task_store.py          # CRUD de tareas y subtareas
-│   │   ├── grupo_store.py         # CRUD de grupos y tareas grupales
-│   │   ├── user_store.py          # CRUD de usuarios
-│   │   ├── sesiones.py            # States UUID para autenticación del calendario
-│   │   └── conversacion.py        # Contexto de conversación activa por usuario
-│   │
-│   ├── utils/
-│   │   ├── parser.py              # Parseo de intents, fechas y datos de tareas
-│   │   ├── helpers.py             # Utilidades: fmt(), get_user_tel_from_state()
-│   │   └── state.py               # Generación de UUID de sesión
-│   │
-│   └── integrations/
-│       ├── llm_haiku.py           # Cliente Anthropic Claude Haiku
-│       └── twilio_client.py       # Cliente Twilio + auto-config de webhook
-│
-├── scheduler/
-│   ├── scheduler.py               # Motor de planificación + recordatorios
-│   ├── manejo_de_bloques.py       # Carga y merge de bloques horarios
-│   └── disponibilidad.py          # Verificación de disponibilidad grupal
-│
-└── static/
-    ├── js/
-    │   ├── config.js              # BASE_URL del backend
-    │   ├── api.js                 # Funciones fetch hacia la API REST
-    │   ├── socket.js              # Cliente WebSocket (Socket.IO)
-    │   ├── utils.js               # Utilidades de fecha, formato y touch
-    │   ├── tasks.js               # Array de tareas, helpers, carga desde backend
-    │   ├── monthView.js           # Vista mensual
-    │   ├── weekView.js            # Vista semanal con bloques por hora
-    │   ├── taskMenu.js            # Menú contextual (completar, mover, borrar)
-    │   ├── taskCreator.js         # Modal de creación de tarea
-    │   ├── blockSlots.js          # Modal de gestión de franjas bloqueadas
-    │   ├── modal.js               # Sistema de modales genérico
-    │   └── script.js              # Inicialización y navegación del calendario
-    │
-    ├── styles/
-    │   ├── base.css               # Reset, layout, clases de prioridad
-    │   ├── month.css              # Estilos vista mensual
-    │   ├── week.css               # Estilos vista semanal
-    │   ├── components.css         # Menú, modales, scrollbar
-    │   └── responsive.css         # Media queries (incluye vista mobile)
-    │
-    ├── logo_wical.png
-    └── background.png
+```text
+SynCal/
+|-- docker-compose.yml
+|-- schema.sql
+|-- requirements.txt
+|-- run.bat / run.sh
+|-- nginx/
+|   `-- default.conf
+|-- web/
+|   |-- main.py
+|   |-- __init__.py
+|   |-- routes/
+|   |   |-- api.py
+|   |   |-- calendar.py
+|   |   |-- callback.py
+|   |   |-- login.py
+|   |   |-- logout.py
+|   |   `-- registro.py
+|   |-- templates/
+|   `-- static/
+|-- whatsapp/
+|   |-- main.py
+|   `-- webhook.py
+|-- notifications/
+|   `-- main.py
+|-- celery_worker/
+|   `-- Dockerfile
+|-- shared/
+|   |-- celery_app.py
+|   |-- celery_tasks.py
+|   |-- config/
+|   |-- integrations/
+|   |-- scheduler/
+|   |-- services/
+|   |-- storage/
+|   `-- utils/
+`-- scripts/
+    |-- auto_config.py
+    `-- ngrok_utils.py
 ```
 
----
+## Flujo principal
+
+1. El usuario escribe al bot de WhatsApp.
+2. Twilio envia el mensaje a `/webhook`.
+3. El servicio `whatsapp` interpreta el comando y registra/consulta/modifica datos en PostgreSQL.
+4. Si se crea una tarea planificable (`EXAMEN` o `TAREA`), se envia una tarea a Celery.
+5. `celery_worker` calcula las sesiones de estudio y las guarda como `subtareas`.
+6. El calendario web consume la API REST y recibe actualizaciones en tiempo real por Socket.IO.
+7. `notifications` envia resumen diario y recordatorios puntuales por WhatsApp.
+
+## Funcionalidades
+
+- Alta de tareas academicas por WhatsApp.
+- Parseo de fechas, horas y tipos de tarea en lenguaje natural.
+- Carga multiple con `!multi` usando Claude Haiku.
+- Listado de tareas y tareas del dia.
+- Completar, eliminar y reagendar tareas mediante conversaciones guiadas.
+- Creacion de grupos por username y tareas grupales.
+- Validacion de disponibilidad comun para tareas grupales.
+- Calendario web con vista mensual y semanal.
+- Login con Google y registro de username.
+- Drag and drop / acciones desde calendario para reagendar, completar, editar o eliminar.
+- Gestion de horarios bloqueados personales y defaults.
+- Actualizaciones en tiempo real con WebSockets.
+- Recordatorios configurables entre 5 y 120 minutos antes.
+
+## Tipos de tarea
+
+| Tipo interno | Se planifica automaticamente | Uso |
+|---|---:|---|
+| `EXAMEN` | Si | parciales, examenes |
+| `TAREA` | Si | tareas, entregas, deberes, presentaciones |
+| `PRACTICO` | No | practicos, lecturas, ejercicios, actividades |
+| `UNKNOWN` | No | tipo no detectado |
+
+En el calendario, la prioridad del frontend se traduce asi:
+
+| Prioridad UI | Tipo interno |
+|---|---|
+| `alta` | `EXAMEN` |
+| `media` | `TAREA` |
+| `baja` | `PRACTICO` |
 
 ## Base de datos
 
-### Tablas
+El schema vive en `schema.sql` y se carga automaticamente al levantar PostgreSQL con Docker Compose.
 
-| Tabla | Descripción |
+Tablas principales:
+
+| Tabla | Descripcion |
 |---|---|
-| `usuario` | Usuarios registrados |
-| `tarea` | Tareas académicas |
-| `subtareas` | Sesiones de estudio generadas por el scheduler |
-| `grupo` | Grupos de trabajo |
-| `grupo_usuario` | Relación muchos a muchos entre grupos y usuarios |
-| `sesiones` | States UUID para autenticación del calendario web |
-| `sesion_conversacion` | Contexto de conversación activa por usuario en WhatsApp |
-| `horarios_bloqueados` | Rutina del usuario (bloques de tiempo no disponibles) |
+| `squema1.usuario` | Usuarios, telefono, Google ID, email, username y configuracion de notificaciones |
+| `squema1.tarea` | Tareas principales |
+| `squema1.subtareas` | Sesiones de estudio generadas por el scheduler |
+| `squema1.grupo` | Grupos de trabajo |
+| `squema1.grupo_usuario` | Relacion entre grupos y usuarios |
+| `squema1.sesiones` | States UUID para acceder al calendario |
+| `squema1.sesion_conversacion` | Contexto pendiente de conversaciones por WhatsApp |
+| `squema1.horarios_bloqueados` | Horarios no disponibles del usuario y defaults globales |
+| `squema1.horarios_bloqueados_excluidos` | Defaults ocultados por usuario |
 
----
+Los horarios bloqueados globales se insertan desde `schema.sql` con `usuario_tel = NULL`.
 
-### Tipos de tarea
+## Comandos de WhatsApp
 
-| Tipo | Planificación automática | Duración base por sesión |
-|---|---|---|
-| `EXAMEN` | Sí | 3 horas |
-| `TAREA` | Sí | 1.5 horas |
-| `PRACTICO` | No | — |
-
-### Estados de tarea
-
-| Estado | Descripción |
+| Accion | Ejemplo |
 |---|---|
-| `PENDIENTE` | Estado inicial |
-| `COMPLETADA` | Marcada como completada |
-
----
-
-## Planificación automática (scheduler)
-
-Al registrar o reagendar una tarea de tipo `EXAMEN` o `TAREA`, el scheduler genera sesiones de estudio automáticamente según el tiempo disponible hasta el deadline:
-
-| Tiempo hasta deadline | Frecuencia | Duración por sesión |
-|---|---|---|
-| Más de 7 días | Día de por medio | Base |
-| 7 días exactos | Todos los días | Base |
-| 2 a 6 días | Todos los días | Base × 1.5 |
-| 1 día | Todos los días | Base × 2.5 |
-
-### Tipos de bloqueo
-
-**Bloques blandos** (`horarios_bloqueados`): representan la rutina del usuario. La sesión **se puede partir** en tramos alrededor de ellos.
-
-**Bloques duros** (subtareas ya agendadas): la sesión **no se puede partir** — si hay conflicto, se busca el siguiente hueco disponible.
-
-### Bloques de rutina por defecto
-
-Los bloques con `usuario_tel = NULL` y `dia_semana = NULL` aplican a todos los usuarios y todos los días:
-
-| Horario | Motivo |
-|---|---|
-| 00:00 – 08:00 | Sueño |
-| 08:00 – 08:30 | Desayuno |
-| 12:30 – 13:00 | Almuerzo |
-| 17:00 – 17:30 | Pausa tarde / Merienda |
-| 18:00 – 22:00 | Clases |
-| 23:00 – 00:00 | Cierre del día |
-
----
-
-## Grupos de trabajo
-
-Los grupos permiten compartir tareas entre integrantes. Solo el creador puede agregar tareas grupales. Al agendar una tarea grupal, el sistema verifica que todos los integrantes tengan ese horario libre. Si hay conflicto, sugiere el próximo hueco disponible en común dentro de los siguientes 14 días.
-
----
-
-## Sistema de notificaciones
-
-El scheduler corre en un thread separado y envía dos tipos de notificaciones por WhatsApp:
-
-**Resumen diario** — todos los días a las 8:00 AM con todas las tareas y sesiones de estudio del día.
-
-**Recordatorio puntual** — X minutos antes de cada tarea o sesión, configurable por usuario (`minutos_anticipacion_notificacion`, default 15 min, rango 5–120 min).
-
----
-
-## Comandos WhatsApp
-
-| Intent | Ejemplos de mensaje |
-|---|---|
-| Agregar tarea | `Añadir parcial de matemáticas el jueves 8 de mayo a las 16:00` |
-| Agregar múltiples (LLM) | `!multi tengo parcial de física el 10/06 y entrega de redes el 12/06` |
-| Listar tareas | `Ver tareas`, `Mis tareas` |
-| Tareas de hoy | `Ver tareas de hoy`, `Mis tareas de hoy` |
-| Completar tarea | `Completar tarea` → responder con número de tarea |
-| Reagendar tarea | `Reagendar tarea` → responder `(id), (nueva fecha)` |
-| Eliminar tarea | `Eliminar tarea`, `Borrar tarea` → responder con número de tarea |
-| Ver calendario | `Calendario`, `Ver calendario` |
-| Crear grupo | `Crear grupo Redes 2, integrantes: user1, user2` |
-| Tarea grupal | `Añadir tarea grupal parcial el 10 de junio a las 16:00` → elegir grupo |
-| Configurar anticipación | `Configurar anticipación 30 minutos` |
-
----
+| Ayuda | `/ayuda` |
+| Agregar tarea | `anadir parcial Calculo 15/06 a las 16:00` |
+| Agregar varias tareas | `!multi anadir parcial Fisica 10/06 anadir entrega Redes 12/06` |
+| Ver tareas | `ver tareas` |
+| Ver tareas de hoy | `ver tareas hoy` |
+| Ver calendario | `ver calendario` |
+| Completar tarea | `completar tarea` y luego responder con el numero |
+| Reagendar tarea | `reagendar tarea` y luego responder `numero, nueva fecha` |
+| Eliminar tarea | `eliminar tarea` y luego responder con el numero |
+| Crear grupo | `crear grupo Redes 2, integrantes: santi, diego` |
+| Crear tarea grupal | `anadir tarea grupal parcial Calculo 15/06 a las 16:00` |
+| Configurar recordatorios | `configurar anticipacion 30 minutos` |
 
 ## Calendario web
 
-El calendario web es accesible vía link generado por WhatsApp con un `state` UUID de sesión. Incluye:
+El calendario se accede desde un link generado por WhatsApp:
 
-- **Vista mensual y semanal**: tareas posicionadas por hora con color según tipo. Las tareas grupales se identifican con 👥.
-- **Vista mobile**: interfaz adaptada para dispositivos móviles.
-- **Sesiones de estudio**: bloques generados por el scheduler visibles en la vista semanal, con soporte para sesiones partidas en múltiples tramos.
-- **Drag & drop**: reagendar tareas arrastrándolas, con replanificación automática de sesiones.
-- **Menú contextual**: editar nombre, cambiar fecha/hora, cambiar prioridad, completar, cambiar tipo grupal/individual o eliminar tarea.
-- **Gestor de franjas bloqueadas**: agregar y eliminar bloques de horario personal.
-- **Tiempo real**: actualizaciones instantáneas via WebSockets — crear, completar, reagendar o eliminar tareas se refleja sin recargar la página.
-- **Resumen semanal**: cantidad de tareas, carga por día y tip de estudio.
-
-### Autenticación del calendario
-
-```
-Usuario pide calendario por WhatsApp
-→ Recibe link /calendar?state=uuid
-→ Abre link → si no tiene sesión activa → redirige a /login
-→ Se autentica con Google
-→ Primera vez: redirige a /registro para elegir username
-→ Sesión Flask activa → accede al calendario
+```text
+/calendar?state=<uuid>
 ```
 
----
+Flujo de autenticacion:
+
+1. El usuario pide el calendario por WhatsApp.
+2. El bot genera un `state` y devuelve el link.
+3. Si no hay sesion Flask activa, se redirige a `/login?state=<uuid>`.
+4. Google devuelve un token al endpoint `/callback`.
+5. Si es el primer acceso y falta username, se redirige a `/registro`.
+6. Con sesion valida, se renderiza `calendario.html`.
+
+El calendario incluye tareas, sesiones de estudio, vista mensual, vista semanal, panel de resumen, acciones contextuales y gestion de franjas bloqueadas.
 
 ## Endpoints
 
 ### WhatsApp
-| Método | Ruta | Descripción |
-|---|---|---|
-| `POST` | `/webhook` | Recibe y procesa mensajes de WhatsApp via Twilio |
 
-### Autenticación
-| Método | Ruta | Descripción |
+| Metodo | Ruta | Servicio | Descripcion |
+|---|---|---|---|
+| `POST` | `/webhook` | `whatsapp` | Recibe mensajes entrantes de Twilio |
+
+### Web y autenticacion
+
+| Metodo | Ruta | Descripcion |
 |---|---|---|
-| `GET` | `/login?state=<uuid>` | Sirve la página de login con Google |
-| `POST` | `/callback` | Valida token Google, crea sesión Flask |
+| `GET` | `/calendar?state=<uuid>` | Muestra el calendario si el state y la sesion son validos |
+| `GET` | `/login?state=<uuid>` | Login con Google |
+| `POST` | `/callback` | Valida token de Google y abre sesion Flask |
 | `GET/POST` | `/registro?state=<uuid>` | Registro de username |
-| `GET` | `/calendar?state=<uuid>` | Sirve el calendario web |
+| `GET` | `/logout?state=<uuid>` | Cierra sesion |
 
-### API REST (calendario web)
-| Método | Ruta | Descripción |
+### API REST del calendario
+
+| Metodo | Ruta | Descripcion |
 |---|---|---|
-| `GET` | `/api/tasks?state=<uuid>` | Obtiene tareas y sesiones del usuario |
-| `POST` | `/api/tasks/create` | Crea nueva tarea |
-| `POST` | `/api/tasks/reagendar` | Reagenda tarea y replanifica sesiones |
-| `POST` | `/api/tasks/complete` | Marca tarea como completada |
-| `POST` | `/api/tasks/delete` | Elimina tarea y sus sesiones |
-| `POST` | `/api/tasks/nombre` | Actualiza nombre de tarea |
-| `POST` | `/api/tasks/prioridad` | Actualiza tipo/prioridad de tarea |
-| `POST` | `/api/tasks/grupal` | Actualiza flag grupal de tarea |
-| `GET` | `/api/tasks/blocked-slots` | Obtiene franjas bloqueadas del usuario |
+| `GET` | `/api/tasks?state=<uuid>` | Obtiene tareas y sesiones |
+| `POST` | `/api/tasks/create` | Crea una tarea |
+| `POST` | `/api/tasks/complete` | Marca una tarea como completada |
+| `POST` | `/api/tasks/delete` | Elimina una tarea |
+| `POST` | `/api/tasks/reagendar` | Cambia deadline y replanifica sesiones |
+| `POST` | `/api/tasks/nombre` | Actualiza nombre |
+| `POST` | `/api/tasks/prioridad` | Actualiza prioridad/tipo |
+| `GET` | `/api/tasks/blocked-slots?state=<uuid>` | Lista horarios bloqueados |
+| `POST` | `/api/blocked-slots/create` | Crea una franja bloqueada |
+| `POST` | `/api/blocked-slots/delete` | Elimina u oculta una franja bloqueada |
 
-Todos los endpoints de la API reciben `state` en el body o query param y lo validan antes de operar.
+Todos los endpoints operativos validan el `state` antes de acceder a datos del usuario.
 
----
+## Variables de entorno
 
-## Instalación y ejecución
-
-### Requisitos
-
-- Python 3.12 (eventlet no es compatible con 3.14+, usar threading)
-- PostgreSQL 16+
-- Cuenta Twilio con número de WhatsApp (sandbox disponible)
-- ngrok
-- Clave API de Anthropic
-- Proyecto en Google Cloud Console con OAuth 2.0 configurado
-
-### Setup
-
-```bash
-# 1. Clonar el repositorio
-git clone <repo>
-cd WiCal
-
-# 2. Crear entorno virtual
-python -m venv venv
-
-# 3. Activar entorno
-source venv/bin/activate      # Linux/Mac
-venv\Scripts\activate         # Windows
-
-# 4. Instalar dependencias
-pip install -r requirements.txt
-
-# 5. Crear la base de datos
-psql -U postgres -c "CREATE DATABASE syncal;"
-psql -U postgres -d syncal -f schema.sql
-
-# 6. Configurar variables de entorno
-cp .env.example .env
-# Completar con tus credenciales
-```
-
-### Variables de entorno (.env)
+Crear un archivo `.env` en la raiz del proyecto.
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-...
+# App
+BASE_URL=http://localhost:8080
+FLASK_SECRET_KEY=syncal-dev-secret
+
+# PostgreSQL
+POSTGRES_HOST=postgres
+POSTGRESDB_NAME=syncal
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_PORT=5432
+OPTIONS=
+
+# RabbitMQ / Celery / Socket.IO
+CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+SOCKETIO_MESSAGE_QUEUE=amqp://guest:guest@rabbitmq:5672//
+
+# Twilio
 TWILIO_SID=AC...
 TWILIO_TOKEN=...
+TWILIO_FROM_WHATSAPP=whatsapp:+14155238886
+
+# Google OAuth
 GOOGLE_CLIENT_ID=...apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=...
-FLASK_SECRET_KEY=...
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+
+# ngrok
+NGROK_AUTHTOKEN=...
 ```
 
-### Iniciar el sistema
+En Docker Compose, varios valores tienen defaults para desarrollo. Las credenciales reales de Twilio, Google, Anthropic y ngrok deben configurarse en `.env`.
 
-**Windows:**
-```bat
-run.bat
-```
+## Ejecucion con Docker Compose
 
-**Linux:**
+Requisito: Docker Desktop o Docker Engine con Compose.
+
 ```bash
-chmod +x run.sh
-./run.sh
+docker compose up --build
 ```
 
-Ambos scripts levantan Flask en el puerto 5000, inician ngrok y configuran el webhook de Twilio automáticamente. El scheduler de notificaciones arranca automáticamente en un thread separado.
+Servicios expuestos:
 
-### Configuración de Google OAuth
+| Servicio | URL |
+|---|---|
+| App web via Nginx | `http://localhost:8080` |
+| RabbitMQ Management | `http://localhost:15672` |
+| Web Flask interno | `web:5000` |
+| WhatsApp Flask interno | `whatsapp:5001` |
 
-1. Ir a [console.cloud.google.com](https://console.cloud.google.com)
-2. APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID
-3. Application type: **Web application**
-4. Authorized redirect URIs: `https://<tu-url-ngrok>/callback`
-5. Copiar `Client ID` y `Client Secret` al `.env`
+El servicio `ngrok` publica Nginx hacia internet. La URL publica debe coincidir con `BASE_URL` para que los links enviados por WhatsApp y OAuth apunten al dominio correcto.
+
+## Ejecucion local sin Docker
+
+El camino recomendado es Docker Compose. Los scripts `run.bat` y `run.sh` son auxiliares para levantar una version local con entorno virtual, Flask y ngrok, pero no reflejan toda la orquestacion actual de servicios separados.
+
+Para ejecucion manual se necesitan, como minimo:
+
+- Python 3.11.
+- PostgreSQL accesible con el schema cargado.
+- RabbitMQ si se quiere usar Celery y Socket.IO con cola.
+- ngrok para exponer `/webhook`.
+- Variables `.env` apuntando a servicios locales.
+
+## Configuracion externa
+
+### Twilio WhatsApp
+
+Configurar el webhook entrante del numero/sandbox hacia:
+
+```text
+https://<tu-dominio-ngrok>/webhook
+```
+
+El helper `scripts/auto_config.py` puede leer la URL local de ngrok y actualizar el webhook de Twilio usando las credenciales del `.env`.
+
+### Google OAuth
+
+En Google Cloud Console, crear un OAuth Client ID de tipo Web Application y registrar el origen/URL usados por el frontend. El login usa Google Identity Services y el backend valida el token recibido en `/callback` con `GOOGLE_CLIENT_ID`.
+
+### Anthropic
+
+`shared/integrations/llm_haiku.py` usa `ANTHROPIC_API_KEY` para parsear mensajes `!multi` con el modelo configurado en el codigo.
+
+## Notificaciones
+
+El servicio `notifications` ejecuta `shared.scheduler.notificaciones.run_scheduler()`.
+
+Se contemplan:
+
+- Resumen diario por WhatsApp.
+- Recordatorios antes de tareas y sesiones.
+- Anticipacion configurable por usuario con default de 15 minutos y rango de 5 a 120 minutos.
+
+## Desarrollo
+
+Comandos utiles:
+
+```bash
+docker compose up --build
+docker compose logs -f web
+docker compose logs -f whatsapp
+docker compose logs -f celery_worker
+docker compose logs -f notifications
+docker compose down
+```
+
+Si se modifica `schema.sql` y se quiere recrear la base desde cero:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+Esto elimina los volumenes de PostgreSQL y WhatsApp definidos por Compose.

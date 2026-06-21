@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict YHyI0Nlxu005TveFs1OUbAOraXyIPh7Yh6tvijtlRvLgi02mbpl5qEZKyN74qMu
+--\restrict YHyI0Nlxu005TveFs1OUbAOraXyIPh7Yh6tvijtlRvLgi02mbpl5qEZKyN74qMu
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4
@@ -10,7 +10,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+--SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -487,9 +487,18 @@ ALTER TABLE ONLY squema1.usuario
     ADD CONSTRAINT usuario_grupo_fk FOREIGN KEY (grupo_id) REFERENCES squema1.grupo(id);
 
 
+INSERT INTO squema1.horarios_bloqueados
+(usuario_tel, dia_semana, hora_inicio, hora_fin, title)
+VALUES
+(NULL, NULL, 0.0, 8.5, 'Sueño'),
+(NULL, NULL, 12.5, 13.0, 'Almuerzo'),
+(NULL, NULL, 17.0, 17.5, 'Tarde'),
+(NULL, NULL, 18.0, 22.0, 'Estudio'),
+(NULL, NULL, 23.0, 24.0, 'Noche');
+
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict YHyI0Nlxu005TveFs1OUbAOraXyIPh7Yh6tvijtlRvLgi02mbpl5qEZKyN74qMu
+--\unrestrict YHyI0Nlxu005TveFs1OUbAOraXyIPh7Yh6tvijtlRvLgi02mbpl5qEZKyN74qMu
 
